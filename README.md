@@ -76,6 +76,8 @@ Sprint 16 adds editable business targets and segment movement intelligence. Glob
 
 Sprint 17 is an interaction clarity and visual system pass. It standardizes the app around clearer hero readouts, metric strips, analysis panels, detail panels, action panels, target status groups, and decision labels without changing the static architecture or analytics formulas. Overview now reads more like mission control, target chips are metric-specific, Audience has a clearer selected-segment path, Calendar pressure is more visual, Newsletters and Campaigns scan by rank/revenue/risk/recommendation, Data targets are grouped by business, engagement, and safety goals, and the Report/drawer are cleaner for screenshots and print.
 
+Sprint 18 adds a GitHub Actions quality gate and Vercel deployment preparation. CI verifies the npm install, tests, lint, typecheck, production build, and source-clean packaging rules on pull requests and pushes to `main`. Vercel remains connected through Git for preview and production deployments.
+
 ## Data Model
 
 The live dashboard reads raw, multi-month static JSON from:
@@ -238,6 +240,12 @@ http://localhost:3000
 ## Verification
 
 ```bash
+npm run verify
+```
+
+The combined verification command runs:
+
+```bash
 npm run test
 npm run lint
 npm run typecheck
@@ -247,42 +255,59 @@ npm run build
 For a clean deployment rehearsal:
 
 ```bash
-rm -rf .next
 npm ci
-npm run test
-npm run lint
-npm run typecheck
-npm run build
+npm run verify
 npm run start
 ```
 
-Package manager decision: npm is the project standard for this demo. Keep `package-lock.json`; do not add pnpm lockfiles unless the project is deliberately migrated and documented.
+Package manager decision: npm is the project standard for this demo. Keep `package-lock.json`; do not add pnpm lockfiles or workspace files unless the project is deliberately migrated and documented.
 
-## Deployment Notes
+GitHub Actions runs the same `test`, `lint`, `typecheck`, and `build` quality gate on pull requests and pushes to `main`. It also fails when generated/dependency artifacts or pnpm metadata are committed.
+
+## Vercel Deployment
 
 Recommended platform: **Vercel**.
 
-This project is a static Next.js app with local JSON data, so deployment is straightforward:
+Import the GitHub repository into Vercel with these settings:
 
-1. Push the repository to GitHub.
-2. Import the repository into Vercel.
-3. Use the default Next.js build settings.
-4. Install command: `npm ci`.
-5. Build command: `npm run build`.
-6. Start command for Node hosting: `npm run start`.
-7. No environment variables are required.
+- Framework preset: Next.js
+- Install command: `npm ci`
+- Build command: `npm run build`
+- Output directory: leave the Vercel default
+- Environment variables: none required
+- Production branch: `main`
 
-Railway can also serve the app with `npm run build` and `npm run start`, but Vercel is the simplest fit for this App Router demo.
+Vercel handles preview deployments for branches and pull requests and production deployments from `main` through Git integration. No Vercel secrets are required for the app.
 
-Data source: local JSON demo data from `data/newsletter-performance.json` plus synthetic `.test` audience member records from `data/audience-members.json`. These records are demo-only and are not real customer data.
+Deployment data comes from local JSON demo files, including `data/newsletter-performance.json`, `data/targets.json`, and synthetic `.test` audience member records from `data/audience-members.json`. Synthetic audience members are demo-only and are not real customer data. Target edits persist only in the current browser’s `localStorage`; they are not stored on the server or shared between browsers.
+
+### Vercel Deployment Checklist
+
+- Confirm GitHub Actions passes on `main`.
+- Import the repository with the settings above.
+- Leave the output directory at its default value.
+- Confirm no environment variables or deployment secrets are configured unnecessarily.
+- Confirm the preview deployment renders the Overview, Audience, Calendar, Newsletters, Campaigns, Data, and Report workspaces.
+- Confirm target edits survive a browser refresh through `localStorage` and reset correctly to demo defaults.
+- Promote or merge to `main` only after the preview deployment and CI quality gate pass.
+
+### Source-Clean Packaging Checklist
+
+- Keep `package-lock.json` as the only lockfile.
+- Do not commit `node_modules/`, `.next/`, `.pnpm-store/`, `tsconfig.tsbuildinfo`, `pnpm-lock.yaml`, or `pnpm-workspace.yaml`.
+- Keep logs, PID files, coverage output, screenshots/exports, and temporary ZIP/PDF artifacts out of the Vercel upload.
+- Keep application source and deployment inputs included: `app/`, `components/`, `lib/`, `data/`, `public/` when present, `package.json`, `package-lock.json`, `next.config.mjs`, and `README.md`.
+
+### Dependency Audit Policy
+
+Run `npm audit --omit=dev` manually before production use. Do not run `npm audit fix --force` without a controlled framework-upgrade branch and a full QA pass because the current Next/PostCSS advisory path may require breaking framework changes.
 
 ## Public Demo Checklist
 
 - Run `npm ci`.
-- Run `npm run test`.
-- Run `npm run lint`.
-- Run `npm run typecheck`.
-- Run `npm run build`.
+- Run `npm run verify`.
+- Confirm GitHub Actions passes test, lint, typecheck, build, and the source-clean guard.
+- Confirm Vercel preview and production deployments are handled through Git integration.
 - Optionally run `npm run start` and confirm the production server responds.
 - Confirm no `.env` files or secrets are present.
 - Confirm dashboard still reads `data/newsletter-performance.json`.

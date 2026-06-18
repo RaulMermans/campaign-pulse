@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "node --import tsx --test lib/newsletterCalendar.test.ts lib/newsletterInsights.test.ts lib/audienceMetrics.test.ts lib/overviewAnalytics.test.ts lib/targetEvaluation.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run test && npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {
     "next": "14.2.35",

@@ -358,3 +358,60 @@ Status:
 - Dashboard data still comes from raw local `data/newsletter-performance.json`; metrics, saturation, fatigue, insights, recommendations, targets, and report values remain computed in TypeScript from local facts plus browser-saved target settings.
 - Screenshot readiness should focus on Overview mission control, Audience all-segment and detail views, Calendar pressure month view, scannable Newsletters/Campaigns, target editor grouping, Report target strip, and newsletter drawer diagnosis.
 - Documentation should continue referencing the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
+## Sprint 18 - GitHub Actions CI + Vercel Deployment Prep
+
+Goal: Add a reliable repository quality gate and prepare the static Next.js demo for Git-connected Vercel deployments without changing the product.
+
+Deliverables:
+
+- `.github/workflows/ci.yml` triggered by pull requests and pushes to `main`.
+- Node 20 CI with npm caching, `npm ci`, tests, lint, typecheck, and production build.
+- Concurrency cancellation for superseded runs on the same branch or pull request.
+- Source-clean CI guard that rejects committed `node_modules/`, `.next/`, `.pnpm-store/`, `tsconfig.tsbuildinfo`, `pnpm-lock.yaml`, and `pnpm-workspace.yaml`.
+- `npm run verify` convenience command for test, lint, typecheck, and build.
+- `.vercelignore` for dependency output, build output, coverage, logs, PID files, screenshots/exports, and temporary ZIP/PDF artifacts.
+- Removal of pnpm workspace metadata while retaining `package-lock.json` as the only lockfile.
+- README documentation for Vercel settings, Git preview/production deployments, local JSON data, browser-only target persistence, synthetic demo audience members, source-clean packaging, and the manual dependency-audit policy.
+
+CI commands:
+
+```bash
+npm ci
+npm run test
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Local verification:
+
+```bash
+npm ci
+npm run verify
+```
+
+Vercel deployment checklist:
+
+- Framework preset: Next.js.
+- Install with `npm ci`.
+- Build with `npm run build`.
+- Leave the output directory at the Vercel default.
+- Use `main` as the production branch.
+- Configure no environment variables unless the architecture changes.
+- Review a Git-connected preview deployment before production.
+
+Source-clean packaging checklist:
+
+- Keep `package-lock.json`.
+- Exclude generated/dependency artifacts, pnpm metadata, logs, PID files, coverage, screenshots/exports, and temporary ZIP/PDF files.
+- Keep application source, raw local JSON demo data, and required Next.js/npm configuration files.
+
+Status:
+
+- Implemented as CI and deployment preparation only.
+- GitHub Actions verifies test, lint, typecheck, build, and source cleanliness.
+- Vercel handles preview and production deployments through Git integration.
+- `npm audit` is intentionally not a failing CI step; run `npm audit --omit=dev` manually and avoid `npm audit fix --force` without a controlled framework-upgrade QA pass.
+- No backend, database, auth, uploads/imports, external APIs, AI/LLM calls, D3, new screens, analytics formula changes, or real customer data were added.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git

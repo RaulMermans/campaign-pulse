@@ -1,0 +1,11 @@
+node_modules
+.next
+.pnpm-store
+coverage
+*.log
+*.pid
+tsconfig.tsbuildinfo
+screenshots
+exports
+*.zip
+*.pdf

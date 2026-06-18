@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify source-clean repository
+        shell: bash
+        run: |
+          tracked_artifacts="$(
+            git ls-files |
+              grep -E '(^|/)(node_modules|\.next|\.pnpm-store)(/|$)|(^|/)tsconfig\.tsbuildinfo$|(^|/)pnpm-lock\.yaml$|(^|/)pnpm-workspace\.yaml$' ||
+              true
+          )"
+
+          if [[ -n "$tracked_artifacts" ]]; then
+            echo "Generated, dependency, or pnpm artifacts are committed:"
+            echo "$tracked_artifacts"
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Run build
+        run: npm run build
