@@ -1,0 +1,114 @@
+{
+  "global": {
+    "monthlyRevenue": 165000,
+    "openRate": 0.34,
+    "clickRate": 0.048,
+    "clickToOpenRate": 0.14,
+    "conversionRate": 0.012,
+    "revenuePerRecipient": 0.18,
+    "maxUnsubscribeRate": 0.003,
+    "maxSpamRate": 0.0004,
+    "maxSendsPerSegmentWeek": 3,
+    "maxPressureScore": 62
+  },
+  "campaigns": {
+    "camp_2026_06_summer_drop": {
+      "monthlyRevenue": 72000,
+      "openRate": 0.35,
+      "clickRate": 0.052,
+      "clickToOpenRate": 0.148,
+      "conversionRate": 0.014,
+      "revenuePerRecipient": 0.21,
+      "maxUnsubscribeRate": 0.0032,
+      "maxSpamRate": 0.0004,
+      "maxSendsPerSegmentWeek": 3,
+      "maxPressureScore": 64
+    },
+    "camp_evergreen_welcome": {
+      "monthlyRevenue": 24000,
+      "openRate": 0.42,
+      "clickRate": 0.07,
+      "clickToOpenRate": 0.17,
+      "conversionRate": 0.016,
+      "revenuePerRecipient": 0.12,
+      "maxUnsubscribeRate": 0.002,
+      "maxSpamRate": 0.0003,
+      "maxSendsPerSegmentWeek": 2,
+      "maxPressureScore": 48
+    },
+    "camp_evergreen_winback": {
+      "monthlyRevenue": 18000,
+      "openRate": 0.24,
+      "clickRate": 0.032,
+      "clickToOpenRate": 0.13,
+      "conversionRate": 0.008,
+      "revenuePerRecipient": 0.08,
+      "maxUnsubscribeRate": 0.004,
+      "maxSpamRate": 0.0005,
+      "maxSendsPerSegmentWeek": 2,
+      "maxPressureScore": 58
+    }
+  },
+  "segments": {
+    "seg_vip": {
+      "monthlyRevenue": 42000,
+      "openRate": 0.44,
+      "clickRate": 0.075,
+      "clickToOpenRate": 0.17,
+      "conversionRate": 0.024,
+      "revenuePerRecipient": 0.34,
+      "maxUnsubscribeRate": 0.002,
+      "maxSpamRate": 0.0003,
+      "maxSendsPerSegmentWeek": 3,
+      "maxPressureScore": 54
+    },
+    "seg_recent_buyers": {
+      "monthlyRevenue": 36000,
+      "openRate": 0.38,
+      "clickRate": 0.06,
+      "clickToOpenRate": 0.158,
+      "conversionRate": 0.018,
+      "revenuePerRecipient": 0.24,
+      "maxUnsubscribeRate": 0.0025,
+      "maxSpamRate": 0.00035,
+      "maxSendsPerSegmentWeek": 3,
+      "maxPressureScore": 58
+    },
+    "seg_high_intent": {
+      "monthlyRevenue": 30000,
+      "openRate": 0.36,
+      "clickRate": 0.058,
+      "clickToOpenRate": 0.16,
+      "conversionRate": 0.017,
+      "revenuePerRecipient": 0.22,
+      "maxUnsubscribeRate": 0.003,
+      "maxSpamRate": 0.0004,
+      "maxSendsPerSegmentWeek": 3,
+      "maxPressureScore": 62
+    },
+    "seg_new_leads": {
+      "monthlyRevenue": 16000,
+      "openRate": 0.31,
+      "clickRate": 0.04,
+      "clickToOpenRate": 0.13,
+      "conversionRate": 0.009,
+      "revenuePerRecipient": 0.08,
+      "maxUnsubscribeRate": 0.0035,
+      "maxSpamRate": 0.00045,
+      "maxSendsPerSegmentWeek": 2,
+      "maxPressureScore": 50
+    },
+    "seg_cold_audience": {
+      "monthlyRevenue": 9000,
+      "openRate": 0.22,
+      "clickRate": 0.026,
+      "clickToOpenRate": 0.118,
+      "conversionRate": 0.006,
+      "revenuePerRecipient": 0.045,
+      "maxUnsubscribeRate": 0.004,
+      "maxSpamRate": 0.0005,
+      "maxSendsPerSegmentWeek": 2,
+      "maxPressureScore": 52
+    }
+  }
+}

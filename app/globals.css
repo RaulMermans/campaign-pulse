@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+:where(main, section, article, aside, header, footer, div, button, label) {
+  min-width: 0;
+}
+
+:where(img, svg, canvas, video) {
+  max-width: 100%;
+}
+
+:where(table) {
+  max-width: 100%;
+}
+
+.overflow-x-auto {
+  max-width: 100%;
+}
+
+:where(th, td) {
+  min-width: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #f8f8f5 0%, #f2f4f0 52%, #eef1ec 100%);
+  color: #171817;
+  font-feature-settings: "ss01" on, "ss02" on, "cv01" on, "cv03" on;
+}
+
+::selection {
+  background: #171817;
+  color: #ffffff;
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #monthly-report,
+  #monthly-report * {
+    visibility: visible;
+  }
+
+  #monthly-report {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
