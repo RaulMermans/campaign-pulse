@@ -32,7 +32,7 @@ Supported source types are:
 - `hubspot_export`
 - `customer_io_export`
 
-Only `demo_json` is implemented.
+`demo_json` and the static `csv_export` fixture adapter are implemented. Vendor-specific adapters remain future work.
 
 ## Normalized Dataset
 
@@ -65,4 +65,17 @@ Warnings are returned when optional audience members, targets, or source metadat
 
 ## Current Limits
 
-Sprint 19 does not add live CRM/API integration, file upload, scheduled sync, webhooks, OAuth, backend services, databases, auth, secrets, or AI calls. Future adapters should produce the same normalized dataset before analytics run.
+Sprint 20 adds no live CRM/API integration, file upload, scheduled sync, webhooks, OAuth, backend services, databases, auth, secrets, or AI calls. `csvExportAdapter` accepts in-memory flat rows from a fake local fixture; future upload or vendor adapters should produce the same normalized dataset before analytics run.
+
+## CSV/export parsing
+
+The static CSV/export adapter:
+
+- expects one newsletter x one segment per row
+- merges repeated campaign, segment, newsletter, and newsletter/segment references
+- trims whitespace and parses common comma/dot decimal and currency formats
+- strips percentage signs while retaining the displayed numeric value
+- defaults optional subject and creative-angle metadata
+- reports source-row issues, then reuses `validateNormalizedDataset` for normalized reference and metric validation
+
+See `docs/source-mapping-examples.md` for Klaviyo, Mailchimp, HubSpot, Customer.io, and generic CSV examples.

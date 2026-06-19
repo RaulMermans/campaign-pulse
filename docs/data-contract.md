@@ -104,7 +104,7 @@ Future ingestion should implement the same adapter contract:
 Cleaned Excel/API export -> validation layer -> raw normalized JSON/API response -> dashboard calculations
 ```
 
-CSV export, Klaviyo, Mailchimp, HubSpot, and Customer.io are placeholders only. There is no live integration, upload UI, scheduled sync, webhook, OAuth, backend, database, or secret management in Sprint 19.
+Sprint 20 implements a static `csv_export` adapter against `data/sample-newsletter-export-rows.json`. Klaviyo, Mailchimp, HubSpot, and Customer.io remain mapping examples and future placeholders only. There is no live integration, upload UI, scheduled sync, webhook, OAuth, backend, database, or secret management.
 
 For a real version, each cleaned Excel row should represent:
 
@@ -113,3 +113,5 @@ one newsletter x one segment
 ```
 
 That shape avoids duplicating campaign metadata while preserving segment-level analysis.
+
+See `docs/source-mapping-examples.md` for vendor-oriented field mapping assumptions.

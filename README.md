@@ -80,6 +80,8 @@ Sprint 18 adds a GitHub Actions quality gate and Vercel deployment preparation. 
 
 Sprint 19 adds the first real data adapter boundary. The existing demo newsletter JSON, synthetic audience members, and default targets are normalized through `demoJsonAdapter` before dashboard analytics run. The Data screen reports adapter status, normalized record counts, validation issues, and future source placeholders without adding live integrations or upload UI.
 
+Sprint 20 adds a second implemented adapter for static flat CSV/export-shaped rows. The fake fixture in `data/sample-newsletter-export-rows.json` is parsed, validated, merged, and normalized into the same dataset shape as Demo JSON. The Data screen shows sample CSV readiness and required fields; `docs/source-mapping-examples.md` documents Klaviyo, Mailchimp, HubSpot, Customer.io, and generic CSV mappings. There is still no upload UI or live CRM/ESP integration.
+
 ## Data Model
 
 The live dashboard keeps its raw, multi-month static source files:
@@ -96,7 +98,7 @@ Sprint 19 routes those files through:
 demo JSON -> adapter validation -> normalized dataset -> computed analytics -> dashboard
 ```
 
-The adapter contract lives in `lib/adapters/`. `demoJsonAdapter` is the only implemented source adapter. CSV export, Klaviyo, Mailchimp, HubSpot, and Customer.io are typed future placeholders only.
+The adapter contract lives in `lib/adapters/`. `demoJsonAdapter` handles the active dashboard source and `csvExportAdapter` handles the static fake flat-row fixture. Klaviyo, Mailchimp, HubSpot, and Customer.io remain typed future placeholders only.
 
 The normalized dataset contains:
 
@@ -150,6 +152,8 @@ Sprint 16 keeps that architecture unchanged. Target status, target tolerance ban
 Sprint 17 also keeps that architecture unchanged. It adds no backend, database, auth, upload/import flow, external API, AI/LLM call, PDF library, D3, new screens, or new analytics formulas. The work is limited to UI clarity, safer local target input parsing, and documentation.
 
 Sprint 19 changes the ingestion boundary, not the business meaning of the data. Metrics, saturation, fatigue, insights, recommendations, targets, and report values remain computed from normalized local facts. There is still no live CRM/API integration, backend, database, auth, upload UI, scheduled sync, webhook, OAuth, secret, or AI call.
+
+Sprint 20 proves export normalization readiness without changing the active dashboard source. CSV/export parsing trims whitespace, accepts common decimal/currency/percentage formatting, merges repeated references, and validates required fields, dates, numeric values, negative metrics, delivery sanity, and normalized references. No upload UI, live vendor API, backend, OAuth, or sync process was added.
 
 ## Target Editor
 
@@ -229,6 +233,16 @@ data/import-sample.json
 Each row represents one newsletter x one segment. Validation checks required fields, metric sanity, impossible delivered/open/click values, and duplicate newsletter-segment rows. The normalizer groups flat rows into campaigns, segments, and newsletters with raw `segmentPerformance[]` facts.
 
 This is not a real upload/import feature. It is a public demo of the future architecture.
+
+Sprint 20 adds a separate adapter fixture:
+
+```text
+data/sample-newsletter-export-rows.json
+  -> csvExportAdapter
+  -> NormalizedDataset
+```
+
+The fixture is fake/demo-only and represents one newsletter x one segment per row. Mapping guidance lives in `docs/source-mapping-examples.md`.
 
 ## Tech Stack
 
@@ -325,7 +339,7 @@ Run `npm audit --omit=dev` manually before production use. Do not run `npm audit
 - Optionally run `npm run start` and confirm the production server responds.
 - Confirm no `.env` files or secrets are present.
 - Confirm `data/newsletter-performance.json` remains the raw demo source and reaches analytics through `demoJsonAdapter`.
-- Confirm the Data screen shows Demo JSON adapter status, normalized counts, validation results, and future source placeholders.
+- Confirm the Data screen shows Demo JSON status, sample CSV adapter status/counts, required CSV fields, and future CRM/ESP placeholders.
 - Confirm synthetic audience members remain clearly demo-only.
 - Confirm data intake simulation is clearly labeled as static demo data.
 - Confirm no backend, database, auth, upload, external API, or AI/LLM calls were added.
@@ -359,7 +373,7 @@ The sample URLs in the mock data use `https://example.com/campaign-pulse-demo` a
 - Campaign drill-down timelines
 - Suppression and recovery-plan scenarios
 - Optional upload/API ingestion in a future non-static version
-- CSV/ESP adapter implementations after the normalized contract is proven
+- Optional upload UI and live CRM/ESP adapters after the static CSV/export contract is proven
 - Safe framework upgrade planning for future Next.js major versions
 
 ## Non-Goals

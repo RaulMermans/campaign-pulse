@@ -440,3 +440,26 @@ Status:
 - Metrics, saturation, fatigue, insights, recommendations, targets, and reports remain computed in TypeScript from normalized facts.
 - No live CRM/API integration, backend, database, auth, upload UI, scheduled sync, webhook, OAuth, secrets, AI/LLM calls, new screens, or major UX redesign were added.
 - Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
+## Sprint 20 - CSV Export Adapter + CRM/ESP Mapping Docs
+
+Goal: Prove that realistic flat ESP/CRM export rows can normalize into the existing adapter contract without adding upload UI or live integrations.
+
+Deliverables:
+
+- `data/sample-newsletter-export-rows.json` with fake one-newsletter x one-segment rows.
+- `lib/adapters/csvExportAdapter.ts` for flat-row parsing, merging, normalization, and validation.
+- Parsing for whitespace, empty strings, comma/dot decimals, currency symbols, percentage strings, invalid numbers, and invalid dates.
+- Validation for required send/newsletter/campaign/segment fields, negative metrics, delivered greater than sent, and broken normalized references.
+- Focused adapter tests included in `npm run test`.
+- Data screen readiness for the active Demo JSON adapter and the static sample CSV adapter.
+- Required CSV field guidance and future Klaviyo, Mailchimp, HubSpot, and Customer.io source placeholders.
+- `docs/source-mapping-examples.md` with vendor mapping assumptions and future API notes.
+
+Status:
+
+- Implemented as a static adapter-readiness sprint.
+- Demo JSON remains the active dashboard source; the CSV/export fixture proves a second source can produce the same normalized dataset shape.
+- The adapter assumes one newsletter x one segment per row and sums row metrics into newsletter aggregates.
+- No upload UI, live CRM/ESP API, backend, database, auth, OAuth, secrets, scheduled sync, webhooks, AI calls, new screens, or major UX redesign were added.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import importRows from "@/data/import-sample.json";
+import sampleExportRows from "@/data/sample-newsletter-export-rows.json";
 import type { Campaign, Segment } from "@/lib/newsletterTypes";
+import type { CsvExportRow } from "@/lib/adapters/csvExportAdapter";
+import { csvExportAdapter } from "@/lib/adapters/csvExportAdapter";
 import type { NormalizedDatasetMetadata } from "@/lib/adapters/normalizedSchema";
 import { futureAdapterSources } from "@/lib/adapters/types";
 import type { RawNewsletterImportRow } from "@/lib/importTypes";
@@ -12,6 +15,15 @@ import type { TargetSettings, TargetValues } from "@/lib/targetTypes";
 import { StatusBadge } from "./StatusBadge";
 
 const rows = importRows as RawNewsletterImportRow[];
+const sampleCsvResult = csvExportAdapter.normalize(sampleExportRows as CsvExportRow[]);
+const requiredCsvFields = [
+  "sendDate",
+  "newsletterId / newsletterName",
+  "campaignId / campaignName",
+  "segmentId / segmentName",
+  "sent / delivered / opens / clicks",
+  "orders / revenue / unsubscribes / spamComplaints"
+];
 
 interface DataIntakeSimulationProps {
   campaigns: Campaign[];
@@ -115,7 +127,7 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Adapter readiness</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">Normalized data source</h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              The dashboard consumes the demo dataset through the adapter contract before analytics run.
+              The dashboard consumes Demo JSON through the adapter contract. A static CSV/export fixture now proves a second source can reach the same normalized shape.
             </p>
           </div>
           <StatusBadge
@@ -131,9 +143,18 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
           <Metric label="Segment rows" value={formatNumber(adapterMetadata.recordCounts.segmentPerformance)} />
         </div>
 
-        <div className="mt-5 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="mt-5 grid gap-4 xl:grid-cols-2">
           <article className="rounded-lg border border-line bg-slate-50/75 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Current adapter</p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Current adapter</p>
+                <h3 className="mt-2 text-lg font-semibold text-ink">Demo JSON</h3>
+              </div>
+              <StatusBadge
+                severity={adapterMetadata.validation.status === "valid" ? "positive" : adapterMetadata.validation.status === "warning" ? "warning" : "critical"}
+                label={adapterMetadata.validation.status}
+              />
+            </div>
             <dl className="mt-4 grid gap-3 text-sm">
               <div className="flex items-center justify-between gap-4">
                 <dt className="text-muted">Current source</dt>
@@ -145,43 +166,78 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
               </div>
             </dl>
             <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-muted">
-              No live CRM/API integration, upload, scheduled sync, webhook, or OAuth flow is enabled.
+              This remains the active dashboard source.
             </p>
           </article>
 
           <article className="rounded-lg border border-line bg-slate-50/75 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Validation warnings and errors</p>
-            {[...adapterMetadata.validation.errors, ...adapterMetadata.validation.warnings].length ? (
-              <ul className="mt-4 space-y-3">
-                {[...adapterMetadata.validation.errors, ...adapterMetadata.validation.warnings].slice(0, 6).map((validationIssue) => (
-                  <li
-                    key={`${validationIssue.code}-${validationIssue.path}`}
-                    className={`rounded-lg border p-3 text-sm leading-6 ${
-                      validationIssue.severity === "error"
-                        ? "border-rose-200 bg-rose-50 text-rose-900"
-                        : "border-amber-200 bg-amber-50 text-amber-900"
-                    }`}
-                  >
-                    {validationIssue.path ? `${validationIssue.path}: ` : ""}{validationIssue.message}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-4 text-sm leading-6 text-muted">No adapter validation warnings or errors.</p>
-            )}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Import readiness</p>
+                <h3 className="mt-2 text-lg font-semibold text-ink">Sample CSV adapter</h3>
+              </div>
+              <StatusBadge
+                severity={sampleCsvResult.dataset.metadata.validation.status === "valid" ? "positive" : sampleCsvResult.dataset.metadata.validation.status === "warning" ? "warning" : "critical"}
+                label={sampleCsvResult.dataset.metadata.validation.status}
+              />
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <PreviewStat label="Campaigns" value={formatNumber(sampleCsvResult.dataset.metadata.recordCounts.campaigns)} />
+              <PreviewStat label="Segments" value={formatNumber(sampleCsvResult.dataset.metadata.recordCounts.segments)} />
+              <PreviewStat label="Newsletters" value={formatNumber(sampleCsvResult.dataset.metadata.recordCounts.newsletters)} />
+              <PreviewStat label="Segment rows" value={formatNumber(sampleCsvResult.dataset.metadata.recordCounts.segmentPerformance)} />
+            </div>
+            <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-muted">
+              Static fake export rows only. The adapter is implemented; upload UI is not implemented yet.
+            </p>
           </article>
         </div>
 
-        <div className="mt-5 rounded-lg border border-line bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Future supported adapters</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {futureAdapterSources.map((source) => (
-              <span key={source.id} className="rounded-full border border-line bg-slate-50 px-3 py-1.5 text-xs font-semibold text-muted">
-                {source.label}
-              </span>
-            ))}
-          </div>
+        <div className="mt-5 grid gap-4 xl:grid-cols-2">
+          <article className="rounded-lg border border-line bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Required CSV fields</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {requiredCsvFields.map((field) => (
+                <span key={field} className="rounded-full border border-line bg-slate-50 px-3 py-1.5 text-xs font-semibold text-muted">
+                  {field}
+                </span>
+              ))}
+            </div>
+            <p className="mt-4 text-xs leading-5 text-muted">Optional content fields: subject and creativeAngle.</p>
+          </article>
+
+          <article className="rounded-lg border border-line bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Future supported sources</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {futureAdapterSources.map((source) => (
+                <span key={source.id} className="rounded-full border border-line bg-slate-50 px-3 py-1.5 text-xs font-semibold text-muted">
+                  {source.label}
+                </span>
+              ))}
+            </div>
+            <p className="mt-4 text-xs leading-5 text-muted">No live CRM/ESP API, OAuth, scheduled sync, webhook, or secrets are enabled.</p>
+          </article>
         </div>
+
+        {[...adapterMetadata.validation.errors, ...adapterMetadata.validation.warnings].length ? (
+          <article className="mt-5 rounded-lg border border-line bg-slate-50/75 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Demo JSON validation warnings and errors</p>
+            <ul className="mt-4 space-y-3">
+              {[...adapterMetadata.validation.errors, ...adapterMetadata.validation.warnings].slice(0, 6).map((validationIssue) => (
+                <li
+                  key={`${validationIssue.code}-${validationIssue.path}`}
+                  className={`rounded-lg border p-3 text-sm leading-6 ${
+                    validationIssue.severity === "error"
+                      ? "border-rose-200 bg-rose-50 text-rose-900"
+                      : "border-amber-200 bg-amber-50 text-amber-900"
+                  }`}
+                >
+                  {validationIssue.path ? `${validationIssue.path}: ` : ""}{validationIssue.message}
+                </li>
+              ))}
+            </ul>
+          </article>
+        ) : null}
       </section>
 
       <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">

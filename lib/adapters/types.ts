@@ -40,7 +40,6 @@ export interface DataAdapter<TInput, TDataset> extends AdapterSource {
 }
 
 export const futureAdapterSources: AdapterSource[] = [
-  { id: "csv-export", label: "CSV export", type: "csv_export" },
   { id: "klaviyo-export", label: "Klaviyo", type: "klaviyo_export" },
   { id: "mailchimp-export", label: "Mailchimp", type: "mailchimp_export" },
   { id: "hubspot-export", label: "HubSpot", type: "hubspot_export" },

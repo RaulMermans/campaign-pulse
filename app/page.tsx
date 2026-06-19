@@ -108,7 +108,7 @@ const screenCopy: Record<ScreenId, { title: string; description: string }> = {
   },
   "data-intake": {
     title: "Data",
-    description: "Inspect the active demo adapter, normalized records, validation results, targets, and intake rehearsal."
+    description: "Inspect Demo JSON and sample CSV adapter readiness, normalized records, validation results, targets, and intake rehearsal."
   }
 };
 
