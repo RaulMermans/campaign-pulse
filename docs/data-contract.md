@@ -1,6 +1,6 @@
 # Campaign Pulse - Data Contract
 
-The dashboard uses a raw, multi-month JSON file. It stores source facts only; derived analytics are calculated in TypeScript utilities.
+The dashboard uses raw, multi-month local JSON source facts. Sprint 19 validates and normalizes those facts through the demo adapter before derived analytics are calculated in TypeScript utilities.
 
 Reference inspiration/context for vibe-coding workflows: https://github.com/filipecalegario/awesome-vibe-coding.git
 
@@ -20,6 +20,21 @@ data/newsletter-performance.json
   newsletters: Newsletter[]
 }
 ```
+
+## Adapter Flow
+
+```text
+data/newsletter-performance.json
+  + optional audience members and targets
+  -> demoJsonAdapter.validate()
+  -> demoJsonAdapter.normalize()
+  -> NormalizedDataset
+  -> dashboard analytics
+```
+
+The adapter preserves existing campaign, segment, newsletter, and nested segment performance business objects. It also exposes a flattened segment performance collection plus source metadata, record counts, and validation status.
+
+See `docs/data-adapter-contract.md` for the Sprint 19 adapter interface and validation rules.
 
 ## Campaign
 
@@ -83,11 +98,13 @@ The app derives:
 
 ## Real Intake Later
 
-Future ingestion should follow:
+Future ingestion should implement the same adapter contract:
 
 ```text
 Cleaned Excel/API export -> validation layer -> raw normalized JSON/API response -> dashboard calculations
 ```
+
+CSV export, Klaviyo, Mailchimp, HubSpot, and Customer.io are placeholders only. There is no live integration, upload UI, scheduled sync, webhook, OAuth, backend, database, or secret management in Sprint 19.
 
 For a real version, each cleaned Excel row should represent:
 

@@ -16,18 +16,18 @@ const targetKeys: Array<keyof TargetValues> = [
   "maxPressureScore"
 ];
 
-export function getDefaultTargetSettings(): TargetSettings {
-  return normalizeTargetSettings(defaultTargets as TargetSettings);
+export function getDefaultTargetSettings(defaults: TargetSettings = defaultTargets as TargetSettings): TargetSettings {
+  return normalizeTargetSettings(defaults, defaults);
 }
 
-export function loadTargetSettings(): TargetSettings {
-  const defaults = getDefaultTargetSettings();
+export function loadTargetSettings(defaultSettings: TargetSettings = defaultTargets as TargetSettings): TargetSettings {
+  const defaults = getDefaultTargetSettings(defaultSettings);
   if (typeof window === "undefined") return defaults;
 
   try {
     const stored = window.localStorage.getItem(TARGET_STORAGE_KEY);
     if (!stored) return defaults;
-    return normalizeTargetSettings({ ...defaults, ...JSON.parse(stored) });
+    return normalizeTargetSettings({ ...defaults, ...JSON.parse(stored) }, defaults);
   } catch {
     return defaults;
   }
@@ -41,16 +41,15 @@ export function saveTargetSettings(settings: TargetSettings): TargetSettings {
   return normalized;
 }
 
-export function resetTargetSettings(): TargetSettings {
-  const defaults = getDefaultTargetSettings();
+export function resetTargetSettings(defaultSettings: TargetSettings = defaultTargets as TargetSettings): TargetSettings {
+  const defaults = getDefaultTargetSettings(defaultSettings);
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(TARGET_STORAGE_KEY);
   }
   return defaults;
 }
 
-export function normalizeTargetSettings(settings: TargetSettings): TargetSettings {
-  const defaults = defaultTargets as TargetSettings;
+export function normalizeTargetSettings(settings: TargetSettings, defaults: TargetSettings = defaultTargets as TargetSettings): TargetSettings {
   return {
     global: normalizeTargetValues({ ...defaults.global, ...settings.global }, defaults.global),
     campaigns: normalizeTargetGroup(settings.campaigns ?? {}, defaults.global),

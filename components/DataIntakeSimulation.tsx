@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import importRows from "@/data/import-sample.json";
 import type { Campaign, Segment } from "@/lib/newsletterTypes";
+import type { NormalizedDatasetMetadata } from "@/lib/adapters/normalizedSchema";
+import { futureAdapterSources } from "@/lib/adapters/types";
 import type { RawNewsletterImportRow } from "@/lib/importTypes";
 import { normalizeImportRows } from "@/lib/importNormalizer";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
@@ -15,6 +17,7 @@ interface DataIntakeSimulationProps {
   campaigns: Campaign[];
   segments: Segment[];
   currency: string;
+  adapterMetadata: NormalizedDatasetMetadata;
   targetSettings: TargetSettings;
   onSaveTargets: (settings: TargetSettings) => void;
   onResetTargets: () => void;
@@ -51,7 +54,7 @@ const targetGroups: Array<{
   }
 ];
 
-export function DataIntakeSimulation({ campaigns, segments, currency, targetSettings, onSaveTargets, onResetTargets }: DataIntakeSimulationProps) {
+export function DataIntakeSimulation({ campaigns, segments, currency, adapterMetadata, targetSettings, onSaveTargets, onResetTargets }: DataIntakeSimulationProps) {
   const normalized = normalizeImportRows(rows);
   const summary = normalized.importSummary;
   const totalRevenue = normalized.newsletters.reduce((total, newsletter) => total + newsletter.metrics.revenue, 0);
@@ -106,6 +109,81 @@ export function DataIntakeSimulation({ campaigns, segments, currency, targetSett
 
   return (
     <div className="grid gap-4">
+      <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">
+        <div className="flex flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Adapter readiness</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">Normalized data source</h2>
+            <p className="mt-3 text-sm leading-6 text-muted">
+              The dashboard consumes the demo dataset through the adapter contract before analytics run.
+            </p>
+          </div>
+          <StatusBadge
+            severity={adapterMetadata.validation.status === "valid" ? "positive" : adapterMetadata.validation.status === "warning" ? "warning" : "critical"}
+            label={adapterMetadata.validation.status === "valid" ? "Valid" : adapterMetadata.validation.status === "warning" ? "Warning" : "Error"}
+          />
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Metric label="Campaigns" value={formatNumber(adapterMetadata.recordCounts.campaigns)} />
+          <Metric label="Segments" value={formatNumber(adapterMetadata.recordCounts.segments)} />
+          <Metric label="Newsletters" value={formatNumber(adapterMetadata.recordCounts.newsletters)} />
+          <Metric label="Segment rows" value={formatNumber(adapterMetadata.recordCounts.segmentPerformance)} />
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+          <article className="rounded-lg border border-line bg-slate-50/75 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Current adapter</p>
+            <dl className="mt-4 grid gap-3 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-muted">Current source</dt>
+                <dd className="font-semibold text-ink">{adapterMetadata.source.label}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-4 border-t border-line pt-3">
+                <dt className="text-muted">Adapter status</dt>
+                <dd className="font-semibold capitalize text-ink">{adapterMetadata.validation.status}</dd>
+              </div>
+            </dl>
+            <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-muted">
+              No live CRM/API integration, upload, scheduled sync, webhook, or OAuth flow is enabled.
+            </p>
+          </article>
+
+          <article className="rounded-lg border border-line bg-slate-50/75 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Validation warnings and errors</p>
+            {[...adapterMetadata.validation.errors, ...adapterMetadata.validation.warnings].length ? (
+              <ul className="mt-4 space-y-3">
+                {[...adapterMetadata.validation.errors, ...adapterMetadata.validation.warnings].slice(0, 6).map((validationIssue) => (
+                  <li
+                    key={`${validationIssue.code}-${validationIssue.path}`}
+                    className={`rounded-lg border p-3 text-sm leading-6 ${
+                      validationIssue.severity === "error"
+                        ? "border-rose-200 bg-rose-50 text-rose-900"
+                        : "border-amber-200 bg-amber-50 text-amber-900"
+                    }`}
+                  >
+                    {validationIssue.path ? `${validationIssue.path}: ` : ""}{validationIssue.message}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 text-sm leading-6 text-muted">No adapter validation warnings or errors.</p>
+            )}
+          </article>
+        </div>
+
+        <div className="mt-5 rounded-lg border border-line bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Future supported adapters</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {futureAdapterSources.map((source) => (
+              <span key={source.id} className="rounded-full border border-line bg-slate-50 px-3 py-1.5 text-xs font-semibold text-muted">
+                {source.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">
         <div className="flex flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">

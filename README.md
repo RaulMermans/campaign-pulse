@@ -78,27 +78,39 @@ Sprint 17 is an interaction clarity and visual system pass. It standardizes the 
 
 Sprint 18 adds a GitHub Actions quality gate and Vercel deployment preparation. CI verifies the npm install, tests, lint, typecheck, production build, and source-clean packaging rules on pull requests and pushes to `main`. Vercel remains connected through Git for preview and production deployments.
 
+Sprint 19 adds the first real data adapter boundary. The existing demo newsletter JSON, synthetic audience members, and default targets are normalized through `demoJsonAdapter` before dashboard analytics run. The Data screen reports adapter status, normalized record counts, validation issues, and future source placeholders without adding live integrations or upload UI.
+
 ## Data Model
 
-The live dashboard reads raw, multi-month static JSON from:
+The live dashboard keeps its raw, multi-month static source files:
 
 ```text
 data/newsletter-performance.json
-```
-
-Sprint 12 adds a synthetic demo audience slice:
-
-```text
 data/audience-members.json
-```
-
-Those records use masked `.test` identities only. They are not real customer data and do not introduce a backend, database, auth, upload/import flow, external API, or AI/LLM call.
-
-Sprint 16 adds editable demo target defaults:
-
-```text
 data/targets.json
 ```
+
+Sprint 19 routes those files through:
+
+```text
+demo JSON -> adapter validation -> normalized dataset -> computed analytics -> dashboard
+```
+
+The adapter contract lives in `lib/adapters/`. `demoJsonAdapter` is the only implemented source adapter. CSV export, Klaviyo, Mailchimp, HubSpot, and Customer.io are typed future placeholders only.
+
+The normalized dataset contains:
+
+- campaigns
+- segments
+- newsletters
+- flattened segment performance rows
+- audience members when available
+- targets when available
+- source metadata, imported timestamp, record counts, and validation status
+
+Validation checks required arrays, unique newsletter IDs, campaign and segment references, numeric metrics, parseable dates, delivered vs sent, and non-negative counts. Missing optional audience, target, or metadata inputs produce warnings; missing required structures or invalid facts produce errors. See `docs/data-adapter-contract.md`.
+
+Synthetic audience records use masked `.test` identities only. They are not real customer data and do not introduce a backend, database, auth, upload/import flow, external API, or AI/LLM call.
 
 Targets support global, campaign, and segment scopes. There are no newsletter-level targets. Browser edits are saved to `localStorage` under the current browser profile; resetting on the Data screen restores the demo defaults from `data/targets.json`.
 
@@ -136,6 +148,8 @@ Sprint 15 did not change the data architecture. The app still reads raw local JS
 Sprint 16 keeps that architecture unchanged. Target status, target tolerance bands, and segment movement labels are computed in TypeScript from local demo facts plus browser-saved target settings. No backend, database, auth, upload/import, external API, AI/LLM call, PDF library, D3, or real customer data was added.
 
 Sprint 17 also keeps that architecture unchanged. It adds no backend, database, auth, upload/import flow, external API, AI/LLM call, PDF library, D3, new screens, or new analytics formulas. The work is limited to UI clarity, safer local target input parsing, and documentation.
+
+Sprint 19 changes the ingestion boundary, not the business meaning of the data. Metrics, saturation, fatigue, insights, recommendations, targets, and report values remain computed from normalized local facts. There is still no live CRM/API integration, backend, database, auth, upload UI, scheduled sync, webhook, OAuth, secret, or AI call.
 
 ## Target Editor
 
@@ -310,7 +324,8 @@ Run `npm audit --omit=dev` manually before production use. Do not run `npm audit
 - Confirm Vercel preview and production deployments are handled through Git integration.
 - Optionally run `npm run start` and confirm the production server responds.
 - Confirm no `.env` files or secrets are present.
-- Confirm dashboard still reads `data/newsletter-performance.json`.
+- Confirm `data/newsletter-performance.json` remains the raw demo source and reaches analytics through `demoJsonAdapter`.
+- Confirm the Data screen shows Demo JSON adapter status, normalized counts, validation results, and future source placeholders.
 - Confirm synthetic audience members remain clearly demo-only.
 - Confirm data intake simulation is clearly labeled as static demo data.
 - Confirm no backend, database, auth, upload, external API, or AI/LLM calls were added.
@@ -344,6 +359,7 @@ The sample URLs in the mock data use `https://example.com/campaign-pulse-demo` a
 - Campaign drill-down timelines
 - Suppression and recovery-plan scenarios
 - Optional upload/API ingestion in a future non-static version
+- CSV/ESP adapter implementations after the normalized contract is proven
 - Safe framework upgrade planning for future Next.js major versions
 
 ## Non-Goals

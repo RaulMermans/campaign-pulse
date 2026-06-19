@@ -415,3 +415,28 @@ Status:
 - `npm audit` is intentionally not a failing CI step; run `npm audit --omit=dev` manually and avoid `npm audit fix --force` without a controlled framework-upgrade QA pass.
 - No backend, database, auth, uploads/imports, external APIs, AI/LLM calls, D3, new screens, analytics formula changes, or real customer data were added.
 - Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
+## Sprint 19 - Adapter Contract + Demo Adapter
+
+Goal: Introduce a real ingestion boundary so the dashboard no longer passes demo JSON directly into analytics.
+
+Deliverables:
+
+- `lib/adapters/` contract, normalized schema, demo JSON adapter, validation helper, and focused tests.
+- Source types for Demo JSON, CSV export, Klaviyo, Mailchimp, HubSpot, and Customer.io.
+- Demo JSON normalization for campaigns, segments, newsletters, flattened segment performance, optional audience members, optional targets, and metadata.
+- Validation for required arrays, unique newsletter IDs, campaign/segment references, numeric metrics, parseable dates, delivered vs sent, and non-negative counts.
+- App data loading routed through `demoJsonAdapter` before analytics.
+- Audience demo members and default targets included in the normalized dataset when available.
+- Data screen adapter readiness section with current source, status, record counts, issues, and future adapter placeholders.
+- Adapter tests added to the existing npm test command.
+- README and data contract documentation updated for the normalized data flow.
+
+Status:
+
+- Implemented as the smallest complete adapter architecture sprint.
+- `demo_json` is the only implemented adapter. CSV export, Klaviyo, Mailchimp, HubSpot, and Customer.io are future placeholders only.
+- Existing raw local JSON remains in place and retains its business meaning.
+- Metrics, saturation, fatigue, insights, recommendations, targets, and reports remain computed in TypeScript from normalized facts.
+- No live CRM/API integration, backend, database, auth, upload UI, scheduled sync, webhook, OAuth, secrets, AI/LLM calls, new screens, or major UX redesign were added.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git

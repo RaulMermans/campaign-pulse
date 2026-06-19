@@ -17,7 +17,9 @@ import {
   YAxis,
   ZAxis
 } from "recharts";
+import audienceMembersJson from "@/data/audience-members.json";
 import newsletterPerformance from "@/data/newsletter-performance.json";
+import defaultTargets from "@/data/targets.json";
 import { CampaignPerformance } from "@/components/CampaignPerformance";
 import { DataIntakeSimulation } from "@/components/DataIntakeSimulation";
 import { MonthlyCalendar, type CalendarView } from "@/components/MonthlyCalendar";
@@ -28,6 +30,7 @@ import { SaturationHeatmap } from "@/components/SaturationHeatmap";
 import { SegmentIntelligence } from "@/components/SegmentIntelligence";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TargetComparisonCard, TargetStatusBadge } from "@/components/TargetStatusBadge";
+import { demoJsonAdapter } from "@/lib/adapters/demoJsonAdapter";
 import { formatCurrency, formatCurrencyPrecise, formatMonth, formatNumber, formatPercent } from "@/lib/formatters";
 import { getGlobalInsights, getRecommendedNextActions } from "@/lib/newsletterInsights";
 import { getOverviewAnalytics, type CampaignContributionPoint, type OverviewAnalytics, type SegmentOpportunityPoint } from "@/lib/overviewAnalytics";
@@ -50,9 +53,15 @@ import {
   getWeakestCampaign,
   getWorstNewsletter,
 } from "@/lib/newsletterMetrics";
-import type { Campaign, Newsletter, NewsletterData, NewsletterInsight, RecommendedAction, Segment } from "@/lib/newsletterTypes";
+import type { AudienceMember } from "@/lib/audienceTypes";
+import type { Campaign, Newsletter, NewsletterInsight, RecommendedAction, Segment } from "@/lib/newsletterTypes";
 
-const data = newsletterPerformance as NewsletterData;
+const adapterResult = demoJsonAdapter.normalize({
+  ...newsletterPerformance,
+  audienceMembers: audienceMembersJson,
+  targets: defaultTargets
+});
+const data = adapterResult.dataset;
 const availableMonths = getAvailableMonths(data.newsletters);
 
 type ScreenId = "overview" | "calendar" | "performance" | "campaigns" | "segments" | "insights" | "report" | "data-intake";
@@ -99,7 +108,7 @@ const screenCopy: Record<ScreenId, { title: string; description: string }> = {
   },
   "data-intake": {
     title: "Data",
-    description: "Inspect the static validation and normalization rehearsal for newsletter rows."
+    description: "Inspect the active demo adapter, normalized records, validation results, targets, and intake rehearsal."
   }
 };
 
@@ -107,7 +116,7 @@ export default function Home() {
   const [selectedMonth, setSelectedMonth] = useState(getLatestMonth(data.newsletters));
   const [activeScreen, setActiveScreen] = useState<ScreenId>("overview");
   const [selectedNewsletter, setSelectedNewsletter] = useState<Newsletter | null>(null);
-  const [targetSettings, setTargetSettings] = useState<TargetSettings>(() => getDefaultTargetSettings());
+  const [targetSettings, setTargetSettings] = useState<TargetSettings>(() => getDefaultTargetSettings(data.targets ?? undefined));
 
   const newsletters = useMemo(() => filterNewslettersByMonth(data.newsletters, selectedMonth), [selectedMonth]);
   const campaigns = useMemo(() => {
@@ -122,7 +131,7 @@ export default function Home() {
   const actions = useMemo(() => getRecommendedNextActions(insights), [insights]);
 
   useEffect(() => {
-    setTargetSettings(loadTargetSettings());
+    setTargetSettings(loadTargetSettings(data.targets ?? undefined));
   }, []);
 
   const handleMonthChange = (month: string) => {
@@ -135,7 +144,7 @@ export default function Home() {
   };
 
   const handleResetTargets = () => {
-    setTargetSettings(resetTargetSettings());
+    setTargetSettings(resetTargetSettings(data.targets ?? undefined));
   };
 
   const copy = screenCopy[activeScreen];
@@ -147,7 +156,7 @@ export default function Home() {
 
         <main className="min-w-0">
           <TopBar
-            projectName={data.meta.projectName}
+            projectName={data.metadata.sourceMetadata.projectName}
             activeScreen={activeScreen}
             month={selectedMonth}
             availableMonths={availableMonths}
@@ -171,13 +180,15 @@ export default function Home() {
                 screen={activeScreen}
                 month={selectedMonth}
                 availableMonths={availableMonths}
-                currency={data.meta.currency}
+                currency={data.metadata.sourceMetadata.currency}
                 newsletters={newsletters}
                 allNewsletters={data.newsletters}
                 campaigns={campaigns}
                 allCampaigns={data.campaigns}
                 segments={segments}
                 allSegments={data.segments}
+                audienceMembers={data.audienceMembers}
+                adapterMetadata={data.metadata}
                 targetSettings={targetSettings}
                 insights={insights}
                 actions={actions}
@@ -313,6 +324,8 @@ function ScreenContent({
   allCampaigns,
   segments,
   allSegments,
+  audienceMembers,
+  adapterMetadata,
   targetSettings,
   insights,
   actions,
@@ -332,6 +345,8 @@ function ScreenContent({
   allCampaigns: Campaign[];
   segments: Segment[];
   allSegments: Segment[];
+  audienceMembers: AudienceMember[];
+  adapterMetadata: typeof data.metadata;
   targetSettings: TargetSettings;
   insights: NewsletterInsight[];
   actions: RecommendedAction[];
@@ -392,7 +407,7 @@ function ScreenContent({
   if (screen === "segments") {
     return (
       <div className="grid gap-4">
-        <SegmentIntelligence segments={segments} campaigns={campaigns} newsletters={newsletters} currency={currency} targetSettings={targetSettings} onSelectNewsletter={onSelectNewsletter} onDetailModeChange={setIsAudienceDrillIn} />
+        <SegmentIntelligence segments={segments} campaigns={campaigns} newsletters={newsletters} audienceMembers={audienceMembers} currency={currency} targetSettings={targetSettings} onSelectNewsletter={onSelectNewsletter} onDetailModeChange={setIsAudienceDrillIn} />
         {!isAudienceDrillIn ? <SaturationHeatmap segments={segments} newsletters={newsletters} currency={currency} /> : null}
       </div>
     );
@@ -406,7 +421,7 @@ function ScreenContent({
     return <MonthlyReport month={month} currency={currency} campaigns={campaigns} segments={segments} newsletters={newsletters} targetSettings={targetSettings} />;
   }
 
-  return <DataIntakeSimulation campaigns={allCampaigns} segments={allSegments} currency={currency} targetSettings={targetSettings} onSaveTargets={onSaveTargets} onResetTargets={onResetTargets} />;
+  return <DataIntakeSimulation campaigns={allCampaigns} segments={allSegments} currency={currency} adapterMetadata={adapterMetadata} targetSettings={targetSettings} onSaveTargets={onSaveTargets} onResetTargets={onResetTargets} />;
 }
 
 function OverviewScreen({

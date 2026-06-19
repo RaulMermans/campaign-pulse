@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import audienceMembersJson from "@/data/audience-members.json";
 import type { AudienceMapPoint, AudienceMember, SegmentCampaignFit, SegmentMovement } from "@/lib/audienceTypes";
 import type { Campaign, Newsletter, Segment, SegmentSummary } from "@/lib/newsletterTypes";
 import {
@@ -21,22 +20,21 @@ import { CampaignColorTag } from "./CampaignColorTag";
 import { StatusBadge } from "./StatusBadge";
 import { TargetStatusBadge } from "./TargetStatusBadge";
 
-const audienceMembers = audienceMembersJson as AudienceMember[];
-
 interface SegmentIntelligenceProps {
   segments: Segment[];
   campaigns: Campaign[];
   newsletters: Newsletter[];
+  audienceMembers: AudienceMember[];
   currency: string;
   targetSettings: TargetSettings;
   onSelectNewsletter: (newsletter: Newsletter) => void;
   onDetailModeChange?: (isDetailOpen: boolean) => void;
 }
 
-export function SegmentIntelligence({ segments, campaigns, newsletters, currency, targetSettings, onSelectNewsletter, onDetailModeChange }: SegmentIntelligenceProps) {
+export function SegmentIntelligence({ segments, campaigns, newsletters, audienceMembers, currency, targetSettings, onSelectNewsletter, onDetailModeChange }: SegmentIntelligenceProps) {
   const summaries = useMemo(() => getSegmentSummaries(segments, campaigns, newsletters).filter((summary) => summary.sendCount > 0), [segments, campaigns, newsletters]);
-  const mapPoints = useMemo(() => getAudienceMapPoints(segments, campaigns, newsletters, audienceMembers), [segments, campaigns, newsletters]);
-  const movementsBySegmentId = useMemo(() => new Map(summaries.map((summary) => [summary.segment.id, getSegmentMovement(summary.segment.id, newsletters, audienceMembers)])), [newsletters, summaries]);
+  const mapPoints = useMemo(() => getAudienceMapPoints(segments, campaigns, newsletters, audienceMembers), [audienceMembers, segments, campaigns, newsletters]);
+  const movementsBySegmentId = useMemo(() => new Map(summaries.map((summary) => [summary.segment.id, getSegmentMovement(summary.segment.id, newsletters, audienceMembers)])), [audienceMembers, newsletters, summaries]);
   const defaultSegmentId = mapPoints[0]?.segmentId ?? summaries[0]?.segment.id ?? "";
   const [selectedSegmentId, setSelectedSegmentId] = useState(defaultSegmentId);
   const [detailSegmentId, setDetailSegmentId] = useState<string | null>(null);
