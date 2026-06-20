@@ -3,7 +3,8 @@ import importRows from "@/data/import-sample.json";
 import sampleExportRows from "@/data/sample-newsletter-export-rows.json";
 import type { Campaign, Segment } from "@/lib/newsletterTypes";
 import type { CsvExportRow } from "@/lib/adapters/csvExportAdapter";
-import { csvExportAdapter } from "@/lib/adapters/csvExportAdapter";
+import { buildRowDiagnostics, csvExportAdapter } from "@/lib/adapters/csvExportAdapter";
+import { buildColumnMappingPreview, buildImportReadinessSummary } from "@/lib/adapters/columnMapping";
 import type { NormalizedDatasetMetadata } from "@/lib/adapters/normalizedSchema";
 import { futureAdapterSources } from "@/lib/adapters/types";
 import type { RawNewsletterImportRow } from "@/lib/importTypes";
@@ -15,15 +16,17 @@ import type { TargetSettings, TargetValues } from "@/lib/targetTypes";
 import { StatusBadge } from "./StatusBadge";
 
 const rows = importRows as RawNewsletterImportRow[];
-const sampleCsvResult = csvExportAdapter.normalize(sampleExportRows as CsvExportRow[]);
-const requiredCsvFields = [
-  "sendDate",
-  "newsletterId / newsletterName",
-  "campaignId / campaignName",
-  "segmentId / segmentName",
-  "sent / delivered / opens / clicks",
-  "orders / revenue / unsubscribes / spamComplaints"
-];
+const sampleCsvRows = sampleExportRows as CsvExportRow[];
+const sampleCsvResult = csvExportAdapter.normalize(sampleCsvRows);
+const sampleRowDiagnostics = buildRowDiagnostics(sampleCsvRows);
+const sampleColumnMapping = buildColumnMappingPreview(
+  sampleCsvRows[0] as Record<string, unknown> | undefined
+);
+const sampleImportSummary = buildImportReadinessSummary(
+  sampleRowDiagnostics,
+  sampleCsvResult.dataset.metadata.recordCounts,
+  sampleCsvResult.dataset.metadata.validation.status
+);
 
 interface DataIntakeSimulationProps {
   campaigns: Campaign[];
@@ -193,32 +196,6 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
           </article>
         </div>
 
-        <div className="mt-5 grid gap-4 xl:grid-cols-2">
-          <article className="rounded-lg border border-line bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Required CSV fields</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {requiredCsvFields.map((field) => (
-                <span key={field} className="rounded-full border border-line bg-slate-50 px-3 py-1.5 text-xs font-semibold text-muted">
-                  {field}
-                </span>
-              ))}
-            </div>
-            <p className="mt-4 text-xs leading-5 text-muted">Optional content fields: subject and creativeAngle.</p>
-          </article>
-
-          <article className="rounded-lg border border-line bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Future supported sources</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {futureAdapterSources.map((source) => (
-                <span key={source.id} className="rounded-full border border-line bg-slate-50 px-3 py-1.5 text-xs font-semibold text-muted">
-                  {source.label}
-                </span>
-              ))}
-            </div>
-            <p className="mt-4 text-xs leading-5 text-muted">No live CRM/ESP API, OAuth, scheduled sync, webhook, or secrets are enabled.</p>
-          </article>
-        </div>
-
         {[...adapterMetadata.validation.errors, ...adapterMetadata.validation.warnings].length ? (
           <article className="mt-5 rounded-lg border border-line bg-slate-50/75 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Demo JSON validation warnings and errors</p>
@@ -238,6 +215,184 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
             </ul>
           </article>
         ) : null}
+      </section>
+
+      <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">
+        <div className="flex flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Import-readiness console</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">CSV column mapping preview</h2>
+            <p className="mt-3 text-sm leading-6 text-muted">
+              Static inspection of how detected source columns map to normalized fields. No upload UI yet.
+            </p>
+          </div>
+          <StatusBadge
+            severity={sampleImportSummary.validationStatus === "valid" ? "positive" : sampleImportSummary.validationStatus === "warning" ? "warning" : "critical"}
+            label={sampleImportSummary.validationStatus}
+          />
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <Metric label="Total rows" value={formatNumber(sampleImportSummary.totalRows)} />
+          <Metric label="Accepted" value={formatNumber(sampleImportSummary.acceptedRows)} />
+          <Metric label="Rejected" value={formatNumber(sampleImportSummary.rejectedRows)} />
+          <Metric label="Campaigns" value={formatNumber(sampleImportSummary.normalizedCampaigns)} />
+          <Metric label="Newsletters" value={formatNumber(sampleImportSummary.normalizedNewsletters)} />
+          <Metric label="Segment rows" value={formatNumber(sampleImportSummary.normalizedSegmentRows)} />
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-2">
+          <article className="rounded-lg border border-line bg-slate-50/75 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Column mapping</p>
+            <p className="mt-1 text-xs text-muted">
+              Exact: {sampleColumnMapping.stats.exact} &nbsp;·&nbsp; Inferred: {sampleColumnMapping.stats.inferred} &nbsp;·&nbsp; Missing: {sampleColumnMapping.stats.missing}
+            </p>
+            <div className="mt-4 overflow-hidden rounded-lg border border-line">
+              <div className="grid grid-cols-[0.9fr_1.1fr_0.6fr_0.5fr] bg-ink px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-card">
+                <span>Source field</span>
+                <span>Normalized field</span>
+                <span>Confidence</span>
+                <span>Required</span>
+              </div>
+              {sampleColumnMapping.mappings.map((mapping) => (
+                <div
+                  key={mapping.sourceField}
+                  className={`grid grid-cols-[0.9fr_1.1fr_0.6fr_0.5fr] border-t border-line px-3 py-2 text-xs ${
+                    mapping.confidence === "missing" && mapping.required
+                      ? "bg-rose-50"
+                      : mapping.confidence === "missing"
+                        ? "bg-amber-50"
+                        : "bg-card"
+                  }`}
+                >
+                  <span className="font-mono text-ink">{mapping.sourceField}</span>
+                  <span className="text-muted">{mapping.normalizedField}</span>
+                  <span className={`font-semibold ${
+                    mapping.confidence === "exact" ? "text-emerald-700" :
+                    mapping.confidence === "inferred" ? "text-amber-700" :
+                    "text-rose-700"
+                  }`}>
+                    {mapping.confidence}
+                  </span>
+                  <span className="text-muted">{mapping.required ? "required" : "optional"}</span>
+                </div>
+              ))}
+            </div>
+            {sampleColumnMapping.missingRequiredFields.length > 0 ? (
+              <p className="mt-3 text-xs text-rose-700">
+                Missing required: {sampleColumnMapping.missingRequiredFields.join(", ")}
+              </p>
+            ) : (
+              <p className="mt-3 text-xs text-emerald-700">All required fields are present.</p>
+            )}
+          </article>
+
+          <article className="rounded-lg border border-line bg-slate-50/75 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Required fields checklist</p>
+            <ul className="mt-4 space-y-2">
+              {sampleColumnMapping.mappings.filter((mapping) => mapping.required).map((mapping) => (
+                <li key={mapping.sourceField} className="flex items-start gap-3 text-xs">
+                  <span className={`mt-0.5 shrink-0 text-sm leading-none ${mapping.confidence === "exact" ? "text-emerald-600" : "text-rose-500"}`}>
+                    {mapping.confidence === "exact" ? "✓" : "✗"}
+                  </span>
+                  <div className="min-w-0">
+                    <span className="font-mono font-semibold text-ink">{mapping.sourceField}</span>
+                    <span className="ml-2 text-muted">{mapping.description}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 border-t border-line pt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Optional fields</p>
+              <ul className="mt-2 space-y-1.5">
+                {sampleColumnMapping.mappings.filter((mapping) => !mapping.required).map((mapping) => (
+                  <li key={mapping.sourceField} className="flex items-start gap-3 text-xs text-muted">
+                    <span className="mt-0.5 shrink-0 text-sm leading-none text-slate-400">
+                      {mapping.confidence === "exact" ? "○" : "–"}
+                    </span>
+                    <span className="font-mono">{mapping.sourceField}</span>
+                    <span>{mapping.description}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
+        </div>
+
+        {sampleRowDiagnostics.some((d) => !d.accepted) ? (
+          <article className="mt-5 rounded-lg border border-line bg-slate-50/75 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Rejected-row diagnostics</p>
+            <div className="mt-4 overflow-hidden rounded-lg border border-line">
+              <div className="grid grid-cols-[0.4fr_0.8fr_0.8fr_0.9fr_1fr_1.1fr] bg-ink px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-card">
+                <span>Row</span>
+                <span>Newsletter</span>
+                <span>Campaign</span>
+                <span>Error type</span>
+                <span>Field / value</span>
+                <span>Reason</span>
+              </div>
+              {sampleRowDiagnostics
+                .filter((d) => !d.accepted)
+                .flatMap((d) =>
+                  d.errors.map((e, errorIndex) => (
+                    <div
+                      key={`${d.rowNumber}-${errorIndex}`}
+                      className="grid grid-cols-[0.4fr_0.8fr_0.8fr_0.9fr_1fr_1.1fr] border-t border-line bg-rose-50 px-3 py-2 text-xs"
+                    >
+                      <span className="font-semibold text-rose-700">{d.rowNumber}</span>
+                      <span className="truncate text-muted" title={d.newsletterId}>{d.newsletterId || "—"}</span>
+                      <span className="truncate text-muted" title={d.campaignId}>{d.campaignId || "—"}</span>
+                      <span className="font-semibold text-rose-800">{e.errorType}</span>
+                      <span className="truncate text-muted">
+                        {e.field ? <span className="font-mono">{e.field}</span> : null}
+                        {e.rawValue ? <span className="ml-1 text-rose-600">{e.rawValue}</span> : null}
+                      </span>
+                      <span className="text-muted">{e.reason}</span>
+                    </div>
+                  ))
+                )
+              }
+            </div>
+          </article>
+        ) : (
+          <article className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-xs font-semibold text-emerald-800">
+              All {sampleImportSummary.totalRows} sample rows accepted — no rejected rows in the static fixture.
+            </p>
+          </article>
+        )}
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <article className="rounded-lg border border-line bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Future supported sources</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {futureAdapterSources.map((source) => (
+                <span key={source.id} className="rounded-full border border-line bg-slate-50 px-3 py-1.5 text-xs font-semibold text-muted">
+                  {source.label}
+                </span>
+              ))}
+            </div>
+            <p className="mt-4 text-xs leading-5 text-muted">No live CRM/ESP API, OAuth, scheduled sync, webhook, or secrets are enabled.</p>
+          </article>
+
+          {sampleColumnMapping.unmappedSourceFields.length > 0 ? (
+            <article className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-800">Unmapped source columns</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {sampleColumnMapping.unmappedSourceFields.map((field) => (
+                  <span key={field} className="rounded-full border border-amber-200 bg-white px-3 py-1.5 text-xs font-mono font-semibold text-amber-800">
+                    {field}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-amber-700">These columns are present in the source but have no mapping in the normalized schema.</p>
+            </article>
+          ) : null}
+        </div>
+
+        <p className="mt-4 text-xs leading-5 text-muted">
+          Static fake fixture only. No upload UI, live CRM/ESP API, backend, database, auth, OAuth, or scheduled sync.
+        </p>
       </section>
 
       <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">

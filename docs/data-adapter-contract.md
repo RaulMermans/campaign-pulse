@@ -63,9 +63,32 @@ Errors are returned for:
 
 Warnings are returned when optional audience members, targets, or source metadata are unavailable.
 
+## Column-Mapping Preview
+
+Sprint 21 adds `lib/adapters/columnMapping.ts` with:
+
+- `MappingConfidence`: `exact | inferred | missing`
+- `ColumnMappingEntry`: source field, normalized field, confidence, required flag, description
+- `ColumnMappingPreview`: detected source columns, all mappings, unmapped source fields, missing required fields, and summary stats
+- `ImportReadinessSummary`: total/accepted/rejected/warning row counts plus normalized entity counts and validation status
+- `buildColumnMappingPreview(sampleRow?)`: builds a preview from a source row or falls back to the full expected field list
+- `buildImportReadinessSummary(rowDiagnostics, counts, validationStatus)`: derives the import summary from row diagnostics
+
+## Row Diagnostics
+
+Sprint 21 adds row-level diagnostics to the CSV/export adapter:
+
+- `RowDiagnosticIssue`: error code, error type label, human-readable reason, affected field, raw value
+- `RowDiagnostic`: row number (1-based), accepted flag, source identifiers (newsletterId, newsletterName, campaignId, segmentId), per-row errors and warnings
+- `buildRowDiagnostics(input)`: exported function that processes raw input and returns one `RowDiagnostic` per row
+
+Row rejection reasons include: missing required field, invalid date, invalid number, negative metric, delivered greater than sent, and broken reference.
+
+The normalized dataset shape, `csvExportAdapter.validate`, and `csvExportAdapter.normalize` outputs are unchanged. Diagnostics are additive.
+
 ## Current Limits
 
-Sprint 20 adds no live CRM/API integration, file upload, scheduled sync, webhooks, OAuth, backend services, databases, auth, secrets, or AI calls. `csvExportAdapter` accepts in-memory flat rows from a fake local fixture; future upload or vendor adapters should produce the same normalized dataset before analytics run.
+Sprint 21 adds no live CRM/API integration, file upload, upload UI, editable mappings, scheduled sync, webhooks, OAuth, backend services, databases, auth, secrets, AI calls, or new major screens. `csvExportAdapter` accepts in-memory flat rows from a fake local fixture; future upload or vendor adapters should produce the same normalized dataset before analytics run.
 
 ## CSV/export parsing
 

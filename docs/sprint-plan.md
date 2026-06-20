@@ -441,6 +441,29 @@ Status:
 - No live CRM/API integration, backend, database, auth, upload UI, scheduled sync, webhook, OAuth, secrets, AI/LLM calls, new screens, or major UX redesign were added.
 - Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
 
+## Sprint 21 - Static Column-Mapping Preview + Rejected-Row Diagnostics
+
+Goal: Make the Data screen show an inspectable import-readiness console: detected columns, mapped fields, accepted rows, rejected rows, and validation reasons.
+
+Deliverables:
+
+- `lib/adapters/columnMapping.ts` with `MappingConfidence` (`exact | inferred | missing`), `ColumnMappingEntry`, `ColumnMappingPreview`, `ImportReadinessSummary` types, and `buildColumnMappingPreview` and `buildImportReadinessSummary` helper functions.
+- `buildRowDiagnostics` export from `lib/adapters/csvExportAdapter.ts` with `RowDiagnostic` and `RowDiagnosticIssue` types. Each diagnostic includes row number, accepted flag, source identifiers (newsletterId, campaignId, segmentId), and per-issue error type, human-readable reason, affected field, and raw value.
+- Refactored `parseRowIsolated` inside the CSV adapter so per-row issues are tracked separately and accumulated; existing normalization output is unchanged.
+- Import-readiness summary with total, accepted, rejected, and warning row counts plus normalized entity counts and validation status.
+- Data screen now shows a compact import-readiness console section with: summary stats strip, column-mapping table (source field, normalized field, confidence, required flag), required-fields checklist with pass/fail indicators, rejected-row diagnostics table, accepted-rows confirmation panel, future-source placeholders, and unmapped-column callout.
+- Column-mapping preview tests in `lib/adapters/columnMapping.test.ts`.
+- Row-diagnostics tests added to `lib/adapters/csvExportAdapter.test.ts`: accepted/rejected counts, row number, identifiers, invalid dates, invalid numbers, negative metrics, delivered exceeds sent, and missing required fields with reason text.
+- `package.json` test command includes `columnMapping.test.ts`.
+
+Status:
+
+- Implemented as the smallest complete adapter-inspection sprint.
+- Static fixture only; no upload UI, live CRM/ESP API, editable mappings, backend, database, auth, OAuth, scheduled sync, webhooks, AI calls, new major screens, or major UX redesign were added.
+- CSV adapter shape and normalized dataset output are unchanged; diagnostics are additive.
+- Demo JSON adapter, CSV adapter, all existing analytics, targets, tests, CI, and Vercel deployment remain intact.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
 ## Sprint 20 - CSV Export Adapter + CRM/ESP Mapping Docs
 
 Goal: Prove that realistic flat ESP/CRM export rows can normalize into the existing adapter contract without adding upload UI or live integrations.

@@ -74,6 +74,25 @@ const numericFields = [
 
 const campaignColors = ["#7c3aed", "#0f766e", "#c026d3", "#d97706", "#2563eb", "#be123c"];
 
+export interface RowDiagnosticIssue {
+  code: string;
+  errorType: string;
+  reason: string;
+  field: string;
+  rawValue: string;
+}
+
+export interface RowDiagnostic {
+  rowNumber: number;
+  accepted: boolean;
+  newsletterId: string;
+  newsletterName: string;
+  campaignId: string;
+  segmentId: string;
+  errors: RowDiagnosticIssue[];
+  warnings: RowDiagnosticIssue[];
+}
+
 export const csvExportAdapter: DataAdapter<unknown, NormalizedDataset> = {
   ...source,
   validate(input) {
@@ -88,6 +107,54 @@ export const csvExportAdapter: DataAdapter<unknown, NormalizedDataset> = {
     };
   }
 };
+
+export function buildRowDiagnostics(input: unknown): RowDiagnostic[] {
+  if (!Array.isArray(input)) return [];
+
+  return input.flatMap((value, rowIndex) => {
+    if (!isRecord(value)) return [];
+    const row = value as CsvExportRow;
+    const { parsed, errors, warnings } = parseRowIsolated(row, rowIndex);
+    return [{
+      rowNumber: rowIndex + 1,
+      accepted: errors.length === 0,
+      newsletterId: parsed.newsletterId,
+      newsletterName: parsed.newsletterName,
+      campaignId: parsed.campaignId,
+      segmentId: parsed.segmentId,
+      errors: errors.map((issueItem) => adapterIssueToRowDiagnostic(issueItem, row)),
+      warnings: warnings.map((issueItem) => adapterIssueToRowDiagnostic(issueItem, row))
+    }];
+  });
+}
+
+function adapterIssueToRowDiagnostic(issueItem: AdapterValidationIssue, row: CsvExportRow): RowDiagnosticIssue {
+  const fieldMatch = issueItem.path?.match(/\.([^.[\]]+)$/);
+  const field = fieldMatch ? fieldMatch[1] : (issueItem.path ?? "");
+  const rawValue = field && field in row ? String(row[field as keyof CsvExportRow] ?? "") : "";
+  return {
+    code: issueItem.code,
+    errorType: codeToErrorType(issueItem.code),
+    reason: issueItem.message,
+    field,
+    rawValue
+  };
+}
+
+function codeToErrorType(code: string): string {
+  switch (code) {
+    case "missing_send_date": return "Missing required field";
+    case "missing_newsletter_reference": return "Missing required field";
+    case "missing_campaign_reference": return "Missing required field";
+    case "missing_segment_reference": return "Missing required field";
+    case "invalid_date": return "Invalid date";
+    case "invalid_numeric_field": return "Invalid number";
+    case "negative_metric": return "Negative metric";
+    case "delivered_exceeds_sent": return "Delivery sanity";
+    case "missing_optional_field": return "Missing optional field";
+    default: return "Validation error";
+  }
+}
 
 export function parseCsvExportNumber(value: unknown): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : Number.NaN;
@@ -126,7 +193,12 @@ function buildNormalization(input: unknown): { dataset: NormalizedDataset; valid
   const adapterWarnings: AdapterValidationIssue[] = [];
   const adapterErrors: AdapterValidationIssue[] = [];
   const rows = getRows(input, adapterErrors);
-  const parsedRows = rows.map((row, rowIndex) => parseRow(row, rowIndex, adapterWarnings, adapterErrors));
+  const rowResults = rows.map((row, rowIndex) => parseRowIsolated(row, rowIndex));
+  rowResults.forEach((result) => {
+    adapterErrors.push(...result.errors);
+    adapterWarnings.push(...result.warnings);
+  });
+  const parsedRows = rowResults.map((result) => result.parsed);
   const campaigns = buildCampaigns(parsedRows, adapterWarnings);
   const segments = buildSegments(parsedRows, adapterWarnings);
   const newsletters = buildNewsletters(parsedRows, adapterWarnings);
@@ -204,12 +276,13 @@ function getRows(input: unknown, errors: AdapterValidationIssue[]): CsvExportRow
   });
 }
 
-function parseRow(
+function parseRowIsolated(
   row: CsvExportRow,
-  rowIndex: number,
-  warnings: AdapterValidationIssue[],
-  errors: AdapterValidationIssue[]
-): ParsedExportRow {
+  rowIndex: number
+): { parsed: ParsedExportRow; errors: AdapterValidationIssue[]; warnings: AdapterValidationIssue[] } {
+  const errors: AdapterValidationIssue[] = [];
+  const warnings: AdapterValidationIssue[] = [];
+
   requiredTextFields.forEach((field) => {
     if (!cleanString(row[field])) {
       const code = field === "sendDate"
@@ -253,17 +326,21 @@ function parseRow(
   }
 
   return {
-    rowIndex,
-    sendDate,
-    newsletterId: cleanString(row.newsletterId) || `missing_newsletter_${rowIndex + 1}`,
-    newsletterName: cleanString(row.newsletterName) || "Unnamed imported newsletter",
-    campaignId: cleanString(row.campaignId) || `missing_campaign_${rowIndex + 1}`,
-    campaignName: cleanString(row.campaignName) || "Unnamed imported campaign",
-    segmentId: cleanString(row.segmentId) || `missing_segment_${rowIndex + 1}`,
-    segmentName: cleanString(row.segmentName) || "Unnamed imported segment",
-    subject: subject || "Imported newsletter",
-    creativeAngle: creativeAngle || "unspecified",
-    ...metrics
+    parsed: {
+      rowIndex,
+      sendDate,
+      newsletterId: cleanString(row.newsletterId) || `missing_newsletter_${rowIndex + 1}`,
+      newsletterName: cleanString(row.newsletterName) || "Unnamed imported newsletter",
+      campaignId: cleanString(row.campaignId) || `missing_campaign_${rowIndex + 1}`,
+      campaignName: cleanString(row.campaignName) || "Unnamed imported campaign",
+      segmentId: cleanString(row.segmentId) || `missing_segment_${rowIndex + 1}`,
+      segmentName: cleanString(row.segmentName) || "Unnamed imported segment",
+      subject: subject || "Imported newsletter",
+      creativeAngle: creativeAngle || "unspecified",
+      ...metrics
+    },
+    errors,
+    warnings
   };
 }
 

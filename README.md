@@ -82,6 +82,8 @@ Sprint 19 adds the first real data adapter boundary. The existing demo newslette
 
 Sprint 20 adds a second implemented adapter for static flat CSV/export-shaped rows. The fake fixture in `data/sample-newsletter-export-rows.json` is parsed, validated, merged, and normalized into the same dataset shape as Demo JSON. The Data screen shows sample CSV readiness and required fields; `docs/source-mapping-examples.md` documents Klaviyo, Mailchimp, HubSpot, Customer.io, and generic CSV mappings. There is still no upload UI or live CRM/ESP integration.
 
+Sprint 21 adds an inspectable import-readiness console to the Data screen. The static CSV/export fixture is inspected through a column-mapping preview that shows detected source columns, normalized field destinations, mapping confidence (`exact | inferred | missing`), and a required-fields checklist. Per-row diagnostics report accepted and rejected rows with error type, affected field, raw value, and human-readable reason. An import-readiness summary shows total, accepted, and rejected row counts alongside normalized entity counts. All diagnostics are additive; the normalized dataset shape and active dashboard source are unchanged. There is still no upload UI, editable mappings, or live CRM/ESP integration.
+
 ## Data Model
 
 The live dashboard keeps its raw, multi-month static source files:
@@ -339,7 +341,7 @@ Run `npm audit --omit=dev` manually before production use. Do not run `npm audit
 - Optionally run `npm run start` and confirm the production server responds.
 - Confirm no `.env` files or secrets are present.
 - Confirm `data/newsletter-performance.json` remains the raw demo source and reaches analytics through `demoJsonAdapter`.
-- Confirm the Data screen shows Demo JSON status, sample CSV adapter status/counts, required CSV fields, and future CRM/ESP placeholders.
+- Confirm the Data screen shows Demo JSON status, sample CSV adapter status/counts, column-mapping preview, required-fields checklist, accepted/rejected row summary, rejected-row diagnostics table, and future CRM/ESP placeholders.
 - Confirm synthetic audience members remain clearly demo-only.
 - Confirm data intake simulation is clearly labeled as static demo data.
 - Confirm no backend, database, auth, upload, external API, or AI/LLM calls were added.
