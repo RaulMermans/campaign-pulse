@@ -86,6 +86,8 @@ Sprint 22 adds an editable column-mapping preview to the Data screen. Users can 
 
 Sprint 23 adds a client-side CSV upload scaffold to the Data screen. Browser `FileReader` reads `.csv` files locally, a dependency-free parser handles headers, quoted values, commas inside quotes, blank lines, trimming, and basic malformed-row errors, and the existing mapping/diagnostics flow runs against uploaded rows. Valid normalized data can replace Demo JSON for the current in-memory dashboard session; users can return to Demo JSON at any time. Uploaded files and normalized datasets are not persisted or sent to a backend.
 
+Sprint 24 adds a browser-only export pack and final portfolio-capture polish. Data can export the active normalized dataset, target settings, adapter validation report, and import diagnostics as JSON. Newsletters, Audience, and Campaigns export current-month CSV views, while Report exports its monthly memo data as JSON and keeps browser printing dependency-free. Safe filenames include the source, reporting month, export purpose, and download date.
+
 Sprint 21 adds an inspectable import-readiness console to the Data screen. The static CSV/export fixture is inspected through a column-mapping preview that shows detected source columns, normalized field destinations, mapping confidence (`exact | inferred | missing`), and a required-fields checklist. Per-row diagnostics report accepted and rejected rows with error type, affected field, raw value, and human-readable reason. An import-readiness summary shows total, accepted, and rejected row counts alongside normalized entity counts. All diagnostics are additive; the normalized dataset shape and active dashboard source are unchanged. There is still no upload UI, editable mappings, or live CRM/ESP integration.
 
 ## Data Model
@@ -169,6 +171,24 @@ local .csv -> FileReader -> CSV parser -> editable mapping -> diagnostics
 ```
 
 Session loading is blocked when parsing fails, required fields are not uniquely mapped, zero rows are accepted, adapter validation is `error`, or the normalized dataset has no campaigns, segments, or newsletters. Refreshing the page or choosing **Return to demo data** restores Demo JSON.
+
+## Browser Export Pack
+
+Sprint 24 exports the current client-side working state without a backend:
+
+- Data: normalized dataset JSON, target settings JSON, adapter validation JSON, and import diagnostics JSON.
+- Newsletters: current-month blended ranking CSV.
+- Audience: current-month segment value, movement, pressure, and target-status CSV.
+- Campaigns: current-month campaign performance and target-status CSV.
+- Report: monthly memo JSON plus browser print.
+
+CSV values are escaped for commas, quotes, and newlines, and downloads use UTF-8 so euro symbols and other international text remain intact. Demo JSON and an active Uploaded CSV session use the same export actions. Uploaded files and normalized uploaded datasets remain session-only.
+
+## Report Printing
+
+The Report screen uses `window.print()` and print-specific CSS only. App navigation, global controls, and export/print buttons are hidden; memo cards avoid page breaks where the browser allows it. No PDF library or server-side renderer is included.
+
+For a clean PDF or paper capture, disable browser print headers and footers in the browser print dialog. That setting is controlled by the user’s browser, not Campaign Pulse.
 
 ## Target Editor
 
@@ -368,13 +388,16 @@ Run `npm audit --omit=dev` manually before production use. Do not run `npm audit
 - Confirm synthetic audience members remain clearly demo-only.
 - Confirm data intake simulation is clearly labeled as static demo data.
 - Confirm uploaded files remain browser-local and session-only, with no backend, database, auth, external API, or AI/LLM calls.
+- Confirm Data exports the active normalized dataset, targets, adapter validation, and diagnostics.
+- Confirm Newsletters, Audience, and Campaigns download current-month UTF-8 CSV files.
+- Confirm Report downloads memo JSON and print preview hides app chrome and action buttons.
 - Capture screenshots of:
-  - Overview decision brief with question-led charts
+  - Overview mission-control decision brief
+  - Data import readiness and local CSV upload
   - Audience all-segments overview
   - selected segment detail panel
-  - pressure heatmap
   - Calendar Month view with compact send cards and `+N more`
-  - Newsletter detail drawer
+  - Newsletters table
   - Report memo in screen and print preview
 
 Sprint 17 screenshot-readiness notes:
@@ -390,6 +413,8 @@ Sprint 17 screenshot-readiness notes:
 No secrets, API keys, private URLs, personal data, or environment variables are required for this project.
 
 The sample URLs in the mock data use `https://example.com/campaign-pulse-demo` and are placeholders only.
+
+Campaign Pulse remains local-first and backend-free. Bundled demo facts ship with the static app, target edits stay in browser `localStorage`, and uploaded CSV data stays in memory for the current session only. Export downloads are created in the browser and are not transmitted to Vercel or another service.
 
 ## Roadmap
 

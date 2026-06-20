@@ -205,6 +205,7 @@ export default function Home() {
                 segments={segments}
                 allSegments={activeData.segments}
                 audienceMembers={activeData.audienceMembers}
+                activeDataset={activeData}
                 adapterMetadata={activeData.metadata}
                 currentSourceLabel={activeData.metadata.source.label}
                 isUploadedSession={activeData.metadata.source.id === "uploaded-csv-session"}
@@ -349,6 +350,7 @@ function ScreenContent({
   segments,
   allSegments,
   audienceMembers,
+  activeDataset,
   adapterMetadata,
   currentSourceLabel,
   isUploadedSession,
@@ -374,6 +376,7 @@ function ScreenContent({
   segments: Segment[];
   allSegments: Segment[];
   audienceMembers: AudienceMember[];
+  activeDataset: NormalizedDataset;
   adapterMetadata: typeof data.metadata;
   currentSourceLabel: string;
   isUploadedSession: boolean;
@@ -429,17 +432,17 @@ function ScreenContent({
   }
 
   if (screen === "performance") {
-    return <PerformanceScreen newsletters={newsletters} campaigns={campaigns} currency={currency} targetSettings={targetSettings} onSelectNewsletter={onSelectNewsletter} />;
+    return <PerformanceScreen month={month} sourceLabel={currentSourceLabel} newsletters={newsletters} campaigns={campaigns} currency={currency} targetSettings={targetSettings} onSelectNewsletter={onSelectNewsletter} />;
   }
 
   if (screen === "campaigns") {
-    return <CampaignPerformance campaigns={campaigns} newsletters={newsletters} currency={currency} targetSettings={targetSettings} />;
+    return <CampaignPerformance month={month} sourceLabel={currentSourceLabel} campaigns={campaigns} newsletters={newsletters} currency={currency} targetSettings={targetSettings} />;
   }
 
   if (screen === "segments") {
     return (
       <div className="grid gap-4">
-        <SegmentIntelligence segments={segments} campaigns={campaigns} newsletters={newsletters} audienceMembers={audienceMembers} currency={currency} targetSettings={targetSettings} onSelectNewsletter={onSelectNewsletter} onDetailModeChange={setIsAudienceDrillIn} />
+        <SegmentIntelligence month={month} sourceLabel={currentSourceLabel} segments={segments} campaigns={campaigns} newsletters={newsletters} audienceMembers={audienceMembers} currency={currency} targetSettings={targetSettings} onSelectNewsletter={onSelectNewsletter} onDetailModeChange={setIsAudienceDrillIn} />
         {!isAudienceDrillIn ? <SaturationHeatmap segments={segments} newsletters={newsletters} currency={currency} /> : null}
       </div>
     );
@@ -450,11 +453,13 @@ function ScreenContent({
   }
 
   if (screen === "report") {
-    return <MonthlyReport month={month} currency={currency} campaigns={campaigns} segments={segments} newsletters={newsletters} targetSettings={targetSettings} />;
+    return <MonthlyReport month={month} sourceLabel={currentSourceLabel} currency={currency} campaigns={campaigns} segments={segments} newsletters={newsletters} targetSettings={targetSettings} />;
   }
 
   return (
     <DataIntakeSimulation
+      month={month}
+      activeDataset={activeDataset}
       campaigns={allCampaigns}
       segments={allSegments}
       currency={currency}
@@ -752,12 +757,16 @@ function CalendarScreen({
 }
 
 function PerformanceScreen({
+  month,
+  sourceLabel,
   newsletters,
   campaigns,
   currency,
   targetSettings,
   onSelectNewsletter
 }: {
+  month: string;
+  sourceLabel: string;
   newsletters: Newsletter[];
   campaigns: Campaign[];
   currency: string;
@@ -806,7 +815,7 @@ function PerformanceScreen({
         </div>
       </section>
 
-      <NewsletterTable newsletters={newsletters} campaigns={campaigns} targetSettings={targetSettings} onSelectNewsletter={onSelectNewsletter} />
+      <NewsletterTable month={month} sourceLabel={sourceLabel} newsletters={newsletters} campaigns={campaigns} targetSettings={targetSettings} onSelectNewsletter={onSelectNewsletter} />
     </div>
   );
 }

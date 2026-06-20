@@ -545,3 +545,29 @@ Status:
 - The adapter assumes one newsletter x one segment per row and sums row metrics into newsletter aggregates.
 - No upload UI, live CRM/ESP API, backend, database, auth, OAuth, secrets, scheduled sync, webhooks, AI calls, new screens, or major UX redesign were added.
 - Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
+## Sprint 24 - Export Pack + Portfolio Capture
+
+Goal: Add practical browser exports, print polish, and a final portfolio-capture checklist without changing the local-first architecture.
+
+Deliverables:
+
+- Lightweight UTF-8 browser export helpers for JSON and CSV downloads.
+- Safe descriptive filenames containing the active source, reporting month, export purpose, and download date.
+- CSV escaping for commas, quotes, newlines, euro symbols, and other UTF-8 text.
+- Data exports for the active normalized dataset, current target settings, adapter validation report, and import diagnostics.
+- Current-month analytics exports for newsletter ranking, audience segment status/targets, and campaign performance.
+- Monthly Report memo JSON export.
+- Report printing through `window.print()` with app chrome, controls, and buttons hidden; memo sections avoid awkward page splits where browser print layout permits.
+- Data-screen demo capture tips and documented screenshots for Overview mission-control, Data import/upload, Audience all segments, Audience selected detail, Calendar month, Newsletters table, and Report memo.
+- Focused tests for serializers, filenames, memo payload shape, and newsletter/segment/campaign export rows.
+
+Status:
+
+- Implemented as the final usability and publishing pass.
+- All downloads are generated client-side. No server-side export or PDF library was added.
+- Demo JSON and Uploaded CSV session data use the same exports; uploaded files and normalized uploaded datasets remain in memory for the current browser session only.
+- Browser print headers and footers remain a user-controlled browser setting and should be disabled in the print dialog for a clean portfolio capture.
+- Campaign Pulse remains local-first with no backend, database, auth, API, OAuth, secrets, scheduled sync, webhook, persistent uploaded datasets, or AI calls.
+- Vercel deployment remains Git-connected with `npm ci`, `npm run build`, default output settings, and no required environment variables.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git

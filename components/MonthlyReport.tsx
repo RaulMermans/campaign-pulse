@@ -11,6 +11,9 @@ import {
 } from "@/lib/newsletterMetrics";
 import { getGlobalInsights, getRecommendedNextActions } from "@/lib/newsletterInsights";
 import { evaluateActualsAgainstTargets, resolveTargets } from "@/lib/targetEvaluation";
+import { buildMonthlyMemoExportData } from "@/lib/export/exportData";
+import { downloadJson } from "@/lib/export/exportJson";
+import { buildExportFilename } from "@/lib/export/exportFilename";
 import type { TargetSettings } from "@/lib/targetTypes";
 import { formatCurrency, formatCurrencyPrecise, formatMonth, formatNumber, formatPercent } from "@/lib/formatters";
 import { StatusBadge } from "./StatusBadge";
@@ -18,6 +21,7 @@ import { TargetStatusBadge } from "./TargetStatusBadge";
 
 interface MonthlyReportProps {
   month: string;
+  sourceLabel: string;
   currency: string;
   campaigns: Campaign[];
   segments: Segment[];
@@ -25,7 +29,7 @@ interface MonthlyReportProps {
   targetSettings: TargetSettings;
 }
 
-export function MonthlyReport({ month, currency, campaigns, segments, newsletters, targetSettings }: MonthlyReportProps) {
+export function MonthlyReport({ month, sourceLabel, currency, campaigns, segments, newsletters, targetSettings }: MonthlyReportProps) {
   const summary = getMonthlySummary(newsletters);
   const bestNewsletter = getBestNewsletter(newsletters);
   const strongestCampaign = getBestCampaign(campaigns, newsletters);
@@ -67,13 +71,25 @@ export function MonthlyReport({ month, currency, campaigns, segments, newsletter
             A print-ready readout of the month: what performed, where pressure is building, and what should happen next.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={printReport}
-          className="no-print inline-flex w-fit items-center justify-center rounded-md border border-ink bg-ink px-4 py-2 text-sm font-semibold text-card transition hover:-translate-y-0.5 hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-ink/30"
-        >
-          Print report
-        </button>
+        <div className="no-print flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => downloadJson(
+              buildExportFilename({ source: sourceLabel, month, descriptor: "monthly-memo", extension: "json" }),
+              buildMonthlyMemoExportData({ month, currency, campaigns, segments, newsletters, targetSettings, sourceLabel })
+            )}
+            className="inline-flex w-fit items-center justify-center rounded-md border border-line bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-ink/30"
+          >
+            Export memo JSON
+          </button>
+          <button
+            type="button"
+            onClick={printReport}
+            className="inline-flex w-fit items-center justify-center rounded-md border border-ink bg-ink px-4 py-2 text-sm font-semibold text-card transition hover:-translate-y-0.5 hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-ink/30"
+          >
+            Print report
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-3 border-b border-line pb-5 md:grid-cols-4 print:mt-4 print:pb-4">

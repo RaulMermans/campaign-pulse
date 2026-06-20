@@ -47,8 +47,20 @@ body {
 }
 
 @media print {
+  @page {
+    margin: 12mm;
+    size: auto;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
   body {
     background: #ffffff;
+    color: #111111;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 
   body * {
@@ -65,7 +77,23 @@ body {
     inset: 0 auto auto 0;
     width: 100%;
     border: 0;
+    border-radius: 0;
+    background: #ffffff;
     box-shadow: none;
+  }
+
+  #monthly-report article,
+  #monthly-report li,
+  #monthly-report dl,
+  #monthly-report .print\:break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  #monthly-report button,
+  #monthly-report select,
+  #monthly-report input {
+    display: none !important;
   }
 
   .no-print {

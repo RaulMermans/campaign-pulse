@@ -11,6 +11,9 @@ import {
   getSegmentRevenueTrend
 } from "@/lib/audienceMetrics";
 import { evaluateActualsAgainstTargets, resolveTargets } from "@/lib/targetEvaluation";
+import { buildSegmentStatusExportRows } from "@/lib/export/exportData";
+import { downloadCsv } from "@/lib/export/exportCsv";
+import { buildExportFilename } from "@/lib/export/exportFilename";
 import type { TargetComparisonMap, TargetSettings } from "@/lib/targetTypes";
 import { getSegmentSummaries } from "@/lib/newsletterMetrics";
 import { getSegmentTakeaway } from "@/lib/newsletterInsights";
@@ -21,6 +24,8 @@ import { StatusBadge } from "./StatusBadge";
 import { TargetStatusBadge } from "./TargetStatusBadge";
 
 interface SegmentIntelligenceProps {
+  month: string;
+  sourceLabel: string;
   segments: Segment[];
   campaigns: Campaign[];
   newsletters: Newsletter[];
@@ -31,7 +36,7 @@ interface SegmentIntelligenceProps {
   onDetailModeChange?: (isDetailOpen: boolean) => void;
 }
 
-export function SegmentIntelligence({ segments, campaigns, newsletters, audienceMembers, currency, targetSettings, onSelectNewsletter, onDetailModeChange }: SegmentIntelligenceProps) {
+export function SegmentIntelligence({ month, sourceLabel, segments, campaigns, newsletters, audienceMembers, currency, targetSettings, onSelectNewsletter, onDetailModeChange }: SegmentIntelligenceProps) {
   const summaries = useMemo(() => getSegmentSummaries(segments, campaigns, newsletters).filter((summary) => summary.sendCount > 0), [segments, campaigns, newsletters]);
   const mapPoints = useMemo(() => getAudienceMapPoints(segments, campaigns, newsletters, audienceMembers), [audienceMembers, segments, campaigns, newsletters]);
   const movementsBySegmentId = useMemo(() => new Map(summaries.map((summary) => [summary.segment.id, getSegmentMovement(summary.segment.id, newsletters, audienceMembers)])), [audienceMembers, newsletters, summaries]);
@@ -185,6 +190,16 @@ export function SegmentIntelligence({ segments, campaigns, newsletters, audience
             {topSignals.map((signal) => (
               <SignalButton key={signal.label} signal={signal} onSelectSegment={openSegmentDetail} selectedSegmentId={selectedSegmentId} />
             ))}
+            <button
+              type="button"
+              className="rounded-md border border-line bg-white px-3 py-2 text-xs font-semibold text-ink transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-ink sm:col-span-2 sm:justify-self-end"
+              onClick={() => downloadCsv(
+                buildExportFilename({ source: sourceLabel, month, descriptor: "audience-segment-status", extension: "csv" }),
+                buildSegmentStatusExportRows({ segments, campaigns, newsletters, audienceMembers, targetSettings })
+              )}
+            >
+              Export segment status CSV
+            </button>
           </div>
         </div>
       </div>

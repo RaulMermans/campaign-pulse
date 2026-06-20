@@ -14,6 +14,12 @@ import {
 import type { NormalizedDataset, NormalizedDatasetMetadata } from "@/lib/adapters/normalizedSchema";
 import { futureAdapterSources } from "@/lib/adapters/types";
 import { assessUploadedSessionLoad } from "@/lib/adapters/uploadSession";
+import {
+  buildAdapterValidationExport,
+  buildImportDiagnosticsExport
+} from "@/lib/export/exportData";
+import { buildExportFilename } from "@/lib/export/exportFilename";
+import { downloadJson } from "@/lib/export/exportJson";
 import type { RawNewsletterImportRow } from "@/lib/importTypes";
 import { normalizeImportRows } from "@/lib/importNormalizer";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
@@ -41,6 +47,8 @@ const availableSourceColumns = sampleCsvRows[0]
 const MAPPING_STORAGE_KEY = "campaign_pulse_column_mapping_v1";
 
 interface DataIntakeSimulationProps {
+  month: string;
+  activeDataset: NormalizedDataset;
   campaigns: Campaign[];
   segments: Segment[];
   currency: string;
@@ -86,6 +94,8 @@ const targetGroups: Array<{
 ];
 
 export function DataIntakeSimulation({
+  month,
+  activeDataset,
   campaigns,
   segments,
   currency,
@@ -158,6 +168,77 @@ export function DataIntakeSimulation({
         onUseUploadedData={onUseUploadedData}
         onReturnToDemoData={onReturnToDemoData}
       />
+
+      <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">
+        <div className="flex flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Export pack</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">Download the current working state</h2>
+            <p className="mt-3 text-sm leading-6 text-muted">
+              Browser-only JSON exports use the active {currentSourceLabel} session. No file is sent to a server.
+            </p>
+          </div>
+          <StatusBadge severity="neutral" label={currentSourceLabel} />
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          <ExportAction
+            label="Normalized dataset"
+            onClick={() => downloadJson(
+              buildExportFilename({ source: currentSourceLabel, month, descriptor: "normalized-dataset", extension: "json" }),
+              activeDataset
+            )}
+          />
+          <ExportAction
+            label="Target settings"
+            onClick={() => downloadJson(
+              buildExportFilename({ source: currentSourceLabel, month, descriptor: "target-settings", extension: "json" }),
+              draft
+            )}
+          />
+          <ExportAction
+            label="Adapter validation"
+            onClick={() => downloadJson(
+              buildExportFilename({ source: currentSourceLabel, month, descriptor: "adapter-validation", extension: "json" }),
+              buildAdapterValidationExport(activeDataset)
+            )}
+          />
+          <ExportAction
+            label="Import diagnostics"
+            onClick={() => downloadJson(
+              buildExportFilename({ source: currentSourceLabel, month, descriptor: "import-diagnostics", extension: "json" }),
+              buildImportDiagnosticsExport({
+                dataset: activeDataset,
+                rowDiagnostics: sampleRowDiagnostics,
+                importValidationIssues: normalized.validationIssues
+              })
+            )}
+          />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Demo capture tips</p>
+        <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">Portfolio screenshot checklist</h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
+          Use Demo JSON for a consistent public walkthrough, hide browser clutter, and capture the selected month at a desktop width.
+        </p>
+        <ul className="mt-5 grid gap-2 text-sm text-ink sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            "Overview mission-control",
+            "Data import readiness + upload",
+            "Audience all segments",
+            "Audience selected detail",
+            "Calendar month",
+            "Newsletters table",
+            "Report memo"
+          ].map((item) => (
+            <li key={item} className="rounded-lg border border-line bg-slate-50/75 px-3 py-3">
+              <span className="mr-2 text-emerald-700">✓</span>{item}
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">
         <div className="flex flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-end xl:justify-between">
@@ -1109,7 +1190,20 @@ function EditableMappingSection({
             <button
               type="button"
               disabled={!loadAssessment.canLoad}
-              onClick={() => onUseDataset(mappedResult.dataset)}
+              onClick={() => onUseDataset({
+                ...mappedResult.dataset,
+                metadata: {
+                  ...mappedResult.dataset.metadata,
+                  sourceMetadata: {
+                    ...mappedResult.dataset.metadata.sourceMetadata,
+                    importDiagnostics: {
+                      parseErrorCount,
+                      mappingWarnings: editableMapping.warnings,
+                      rowDiagnostics: mappedDiagnostics
+                    }
+                  }
+                }
+              })}
               className="shrink-0 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black focus:outline-none focus:ring-2 focus:ring-ink disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               Use uploaded data for this session
@@ -1196,5 +1290,17 @@ function PreviewStat({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
       <p className="mt-1 text-base font-semibold text-ink">{value}</p>
     </div>
+  );
+}
+
+function ExportAction({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-md border border-line bg-white px-3 py-2 text-xs font-semibold text-ink transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-ink"
+    >
+      Export {label} JSON
+    </button>
   );
 }

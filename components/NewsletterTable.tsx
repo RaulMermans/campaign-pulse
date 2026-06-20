@@ -8,6 +8,9 @@ import {
   getSendDate
 } from "@/lib/newsletterMetrics";
 import { getNewsletterSaturation } from "@/lib/newsletterSaturation";
+import { buildNewsletterRankingExportRows } from "@/lib/export/exportData";
+import { downloadCsv } from "@/lib/export/exportCsv";
+import { buildExportFilename } from "@/lib/export/exportFilename";
 import { evaluateActualsAgainstTargets, resolveTargets } from "@/lib/targetEvaluation";
 import type { TargetSettings } from "@/lib/targetTypes";
 import { formatCurrency, formatCurrencyPrecise, formatDateLabel, formatPercent } from "@/lib/formatters";
@@ -16,13 +19,15 @@ import { StatusBadge } from "./StatusBadge";
 import { TargetStatusBadge } from "./TargetStatusBadge";
 
 interface NewsletterTableProps {
+  month: string;
+  sourceLabel: string;
   newsletters: Newsletter[];
   campaigns: Campaign[];
   targetSettings: TargetSettings;
   onSelectNewsletter: (newsletter: Newsletter) => void;
 }
 
-export function NewsletterTable({ newsletters, campaigns, targetSettings, onSelectNewsletter }: NewsletterTableProps) {
+export function NewsletterTable({ month, sourceLabel, newsletters, campaigns, targetSettings, onSelectNewsletter }: NewsletterTableProps) {
   const sorted = [...newsletters].sort((a, b) => a.timing.sentAt.localeCompare(b.timing.sentAt));
   const campaignById = new Map(campaigns.map((campaign) => [campaign.id, campaign]));
   const globalTargets = resolveTargets(targetSettings, "global");
@@ -34,7 +39,19 @@ export function NewsletterTable({ newsletters, campaigns, targetSettings, onSele
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Newsletter audit layer</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">All sends</h2>
         </div>
-        <p className="text-sm text-muted">Sorted chronologically. Select a row for the same detail read as the calendar.</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-muted">Sorted chronologically. Select a row for the same detail read as the calendar.</p>
+          <button
+            type="button"
+            className="rounded-md border border-line bg-white px-3 py-2 text-xs font-semibold text-ink transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-ink"
+            onClick={() => downloadCsv(
+              buildExportFilename({ source: sourceLabel, month, descriptor: "newsletter-ranking", extension: "csv" }),
+              buildNewsletterRankingExportRows(newsletters, targetSettings)
+            )}
+          >
+            Export ranking CSV
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 overflow-hidden rounded-xl border border-line">
