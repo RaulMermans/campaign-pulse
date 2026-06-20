@@ -63,6 +63,36 @@ Errors are returned for:
 
 Warnings are returned when optional audience members, targets, or source metadata are unavailable.
 
+## Editable Column Mapping
+
+Sprint 22 extends `lib/adapters/columnMapping.ts` with an interactive mapping model:
+
+- `MappingConfidence`: `exact | inferred | manual | missing` (extended from Sprint 21's `exact | inferred | missing`).
+- `MappingValidationState`: `mapped | missing | duplicate | invalid`.
+- `EditableMappingEntry`: combines normalized field metadata with `detectedSourceColumn` (auto-detected), `selectedSourceColumn` (user's current choice), `confidence`, and `validationState`.
+- `EditableColumnMapping`: `availableSourceColumns`, `entries[]`, `warnings[]`.
+- `ALIAS_MAP`: deterministic alias lookup — `send_date → sendDate`, `campaign → campaignName`, `email_name → newsletterName`, `recipients → sent`, `opens_unique → opens`, `clicks_unique → clicks`, `placed_order → orders`, `revenue_eur → revenue`, `unsub → unsubscribes`, `spam → spamComplaints`.
+- `buildEditableColumnMapping(availableSourceColumns, savedMapping?)`: exact match first, then alias inference, then saved manual overrides from `localStorage`-backed state.
+- `applyMappingToRows(rows, entries)`: transforms source rows by writing `row[canonicalField] = row[selectedSourceColumn]` for every entry with a selected column. Used to produce adapter-ready rows from re-mapped source data before calling `buildRowDiagnostics` or `csvExportAdapter.normalize`.
+
+### Mapping confidence rules
+
+- `exact`: source column name exactly matches the canonical adapter field name.
+- `inferred`: source column was matched via the alias map.
+- `manual`: user explicitly selected a source column different from the auto-detected value; persisted in `localStorage`.
+- `missing`: no source column is selected (null selection or no match/alias).
+
+### Validation states
+
+- `mapped`: entry has a valid, non-duplicate source column selection.
+- `missing`: no source column selected; required fields also produce a warning.
+- `duplicate`: the same source column is selected for more than one normalized field; a warning is emitted.
+- `invalid`: selected source column is not present in `availableSourceColumns`.
+
+### localStorage persistence
+
+Custom mapping is stored in `localStorage` under `campaign_pulse_column_mapping_v1` as `Record<string, string | null>` keyed by canonical field name. Per-field Reset removes only that field's entry; Reset all clears the key entirely. No server-side persistence, no upload UI, no live API.
+
 ## Column-Mapping Preview
 
 Sprint 21 adds `lib/adapters/columnMapping.ts` with:

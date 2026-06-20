@@ -441,6 +441,40 @@ Status:
 - No live CRM/API integration, backend, database, auth, upload UI, scheduled sync, webhook, OAuth, secrets, AI/LLM calls, new screens, or major UX redesign were added.
 - Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
 
+## Sprint 22 - Editable Column Mapping Preview
+
+Goal: Let users remap unrecognized source columns to normalized Campaign Pulse fields locally before import.
+
+Deliverables:
+
+- `MappingConfidence` extended to `exact | inferred | manual | missing`.
+- `MappingValidationState` type: `mapped | missing | duplicate | invalid`.
+- `EditableMappingEntry` with `sourceField`, `normalizedField`, `required`, `description`, `detectedSourceColumn`, `selectedSourceColumn`, `confidence`, and `validationState`.
+- `EditableColumnMapping` with `availableSourceColumns`, `entries`, and `warnings`.
+- `ALIAS_MAP` for common ESP/CRM export column variants: `send_date → sendDate`, `campaign → campaignName`, `email_name → newsletterName`, `recipients → sent`, `opens_unique → opens`, `clicks_unique → clicks`, `placed_order → orders`, `revenue_eur → revenue`, `unsub → unsubscribes`, `spam → spamComplaints`.
+- `buildEditableColumnMapping(availableSourceColumns, savedMapping?)` — auto-detects via exact match and alias inference; applies saved manual overrides.
+- `applyMappingToRows(rows, entries)` — transforms source rows by mapping selected source columns to canonical field names before adapter normalization.
+- Data screen `EditableMappingSection` component with:
+  - Per-field dropdowns showing all detected source columns plus `— unmapped —`.
+  - Confidence badge (`exact | inferred | manual | missing`).
+  - Status badge (`mapped | missing | duplicate | invalid`).
+  - Per-field Reset button (reverts to auto-detected, removes from `localStorage`).
+  - Reset-all button (clears the full `localStorage` mapping).
+  - Live accepted/rejected row counts updated after mapping.
+  - Live diagnostics table updated after mapping.
+  - Inline warnings for duplicate source-column mappings and missing required fields.
+  - Alias map reference panel.
+- `localStorage` persistence under `campaign_pulse_column_mapping_v1` for demo continuity.
+- 15 new tests covering exact mapping, inferred alias mapping, manual mapping, reset mapping, duplicate mapping warning, missing required field warning, invalid column detection, `applyMappingToRows` aliased columns, preserved original keys, manual override, and null-entry skip.
+- README, `docs/sprint-plan.md`, and `docs/data-adapter-contract.md` updated.
+
+Status:
+
+- Implemented as the smallest complete adapter-usability sprint.
+- Static fixture only; no upload UI, live CRM/ESP API, backend, database, auth, OAuth, scheduled sync, webhooks, AI calls, new major screens, or major UX redesign were added.
+- All existing tests pass; 58 total tests now pass.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
 ## Sprint 21 - Static Column-Mapping Preview + Rejected-Row Diagnostics
 
 Goal: Make the Data screen show an inspectable import-readiness console: detected columns, mapped fields, accepted rows, rejected rows, and validation reasons.
