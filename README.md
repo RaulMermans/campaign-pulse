@@ -1,285 +1,99 @@
 # Campaign Pulse
 
-Campaign Pulse is a newsletter performance command center for campaign, segment, revenue, and saturation intelligence.
+Campaign Pulse is a local-first marketing intelligence command center that turns newsletter delivery, engagement, revenue, audience, and campaign facts into a decision-ready monthly view. It is an advanced frontend data-product prototype built to demonstrate ingestion contracts, target-aware analytics, segment movement intelligence, browser-only exports, and editorial reporting without requiring a backend.
 
-It is a polished static demo built to show how a lifecycle or newsletter team could move from monthly send data to strategic decisions without digging through spreadsheets.
+[Live demo](https://campaign-pulse.vercel.app/) · [Portfolio case study](docs/portfolio-case-study.md) · [Public release checklist](docs/public-release-checklist.md)
 
-Reference inspiration/context for vibe-coding workflows: https://github.com/filipecalegario/awesome-vibe-coding.git
+> Campaign Pulse is a portfolio prototype, not a production SaaS product. It uses synthetic demo data and browser-local state only.
 
-## Problem
+## Screenshots
 
-Newsletter teams can usually see metrics, but the work gets harder when they need judgment:
+Final screenshots are not committed yet. Capture these states before publishing the portfolio entry:
 
-- Which campaign actually carried the month?
-- Which audience segment is worth protecting?
-- Which sends created fatigue?
-- Which creative pattern should be repeated?
-- What should change before the next campaign cycle?
+1. Overview mission-control
+2. Data import readiness and local CSV upload
+3. Editable column mapping
+4. Audience — all segments
+5. Audience — selected segment detail
+6. Calendar — month view
+7. Newsletters ranking table
+8. Campaign comparison
+9. Report memo
+10. Export actions
 
-Most dashboards show the numbers. Campaign Pulse is designed to explain the month.
+See the detailed capture notes in [docs/public-release-checklist.md](docs/public-release-checklist.md).
 
-## Solution
+## Feature overview
 
-Campaign Pulse turns raw local newsletter facts into an editorial analytics workspace with:
+- Monthly mission-control view with KPI hierarchy, target status, risks, anomalies, and recommended next moves.
+- Calendar, newsletter, campaign, audience, insights, report, and data workspaces.
+- Newsletter ranking, campaign comparison, audience value/pressure analysis, saturation diagnostics, and segment movement labels.
+- Editable global, campaign, and segment targets with deterministic `On track`, `Watch`, and `Off track` evaluation.
+- Demo JSON and local CSV sources normalized through the same adapter contract.
+- Editable CSV column mapping, alias inference, required-field checks, accepted/rejected row diagnostics, and guarded session activation.
+- Browser-only JSON and CSV export pack plus dependency-free report printing.
+- GitHub Actions quality gate and Git-connected Vercel deployment configuration.
 
-- monthly KPI hierarchy
-- calendar-first send review
-- campaign and segment intelligence
-- visual audience intelligence with segment selection
-- saturation heatmap
-- newsletter detail drawer
-- rule-based insight engine
-- recommended next actions
-- print-ready monthly performance report
-- static data intake simulation
+## Architecture
 
-The interface is intentionally premium and restrained: soft neutral background, strong typography, clean cards, subtle borders, and muted campaign accents.
+Campaign Pulse keeps ingestion, normalized facts, analytics, and presentation separate while remaining entirely client-side.
 
-## Core Features
+```mermaid
+flowchart LR
+    A["CSV upload or demo JSON"] --> B["Adapter validation"]
+    B --> C["Normalized dataset"]
+    C --> D["Computed analytics"]
+    D --> E["Target evaluation"]
+    E --> F["UI workspaces"]
+    F --> G["Exports and report"]
+```
 
-- **Monthly command center:** Sidebar workspace with focused overview, calendar, newsletters, campaigns, audience, insights, report, and data screens.
-- **Clickable newsletters:** Calendar cards and table rows open the same detail drawer.
-- **Campaign performance:** One card per campaign with sends, revenue, rates, best/weakest send, saturation, and takeaway.
-- **Audience intelligence workspace:** All active segments stay visible in a master overview; click one segment to open a rich detail panel with value vs pressure, trend lines, campaign fit, newsletter history, and demo-only sample members.
-- **Overview data science brief:** Month-over-month movement, 3-month rolling averages, campaign and segment concentration, pressure vs revenue, opportunity/risk ranking, anomaly callouts, campaign efficiency, audience pressure, and executive health are computed from raw local facts.
-- **Saturation heatmap:** Segment x week view that highlights healthy, watch, saturated, and overexposed states.
-- **Insight engine:** Rule-based reads for best performer, revenue outliers, unsubscribe warnings, campaign decay, and promotional pressure.
-- **Monthly report:** Strategic memo with executive summary, learnings, risks, and recommended next actions.
-- **Data intake simulation:** Cleaned Excel/API-shaped rows are validated and normalized into dashboard-ready data for preview.
+The app uses:
 
-## Product Navigation
+- `data/newsletter-performance.json` for newsletter, campaign, and segment facts.
+- `data/audience-members.json` for synthetic `.test` audience examples.
+- `data/targets.json` for default target settings.
+- `lib/adapters/` for source validation, mapping, diagnostics, and normalization.
+- TypeScript utilities for rates, saturation, fatigue, movement, insights, recommendations, and report values.
+- Browser state for uploaded CSV sessions and `localStorage` for target edits.
 
-Sprint 09 reorganized the original long dashboard into a sidebar-based internal tool. The shared month/year selector stays in the top bar and applies across every screen.
+No rates, rankings, saturation labels, fatigue diagnoses, insights, or recommendations are precomputed in the source JSON.
 
-1. Overview
-2. Calendar
-3. Newsletters
-4. Campaigns
-5. Audience
-6. Insights
-7. Report
-8. Data
+## Data flow and adapter framework
 
-Calendar cards and performance table rows continue to open the same newsletter detail drawer.
-
-Sprint 11 added a global UX/UI clarity pass: simpler navigation labels, a compact global header, a decision-led Overview, deduplicated P1/P2/P3 recommendations, a prioritized Insights action board, a more decision-led newsletter drawer, and a calmer monthly memo report.
-
-Sprint 12 turns Audience into a visual intelligence workspace. The screen now uses computed Recharts views for value vs pressure, revenue/engagement trends, and campaign fit, all derived from raw local newsletter facts and demo-only audience member records.
-
-Sprint 13 restores the full Audience landscape with a master-detail UX: every segment appears in a compact decision card before the selected segment detail panel opens. Sprint 13 also upgrades Overview into a computed data-science brief with rolling averages, concentration analysis, pressure/revenue visuals, opportunity and risk ranking, deterministic anomaly callouts, campaign efficiency, audience pressure, and executive health scoring.
-
-Sprint 14 is the deployment reliability pass. The repo now standardizes on npm with `package-lock.json`, adds a stable `npm run test` command for focused TypeScript utility tests, ignores generated artifacts, and documents the clean verification and demo deployment workflow.
-
-Sprint 15 is the UX/UI polish and portfolio screenshot pass. It fixes the global topbar/content overlap, calms repeated card textures into clearer hero, metric, analysis, detail, and action panels, makes major charts question-led with short annotations, tightens the Overview decision brief, simplifies Audience segment cards while keeping every segment visible, fixes Calendar month clipping with compact event cards and `+N more` overflow, and sharpens the newsletter drawer and monthly report for portfolio capture.
-
-Sprint 16 adds editable business targets and segment movement intelligence. Global, campaign, and segment targets live in `data/targets.json`, can be edited on the Data screen, and persist in browser `localStorage`; source performance facts still come from local JSON. Overview, Audience, Campaigns, Newsletters, and Report show compact target status comparisons, while Audience labels each active segment as Growing, Stable, Declining, Fatigued, or Recovering from deterministic monthly trend and demo-member fatigue signals.
-
-Sprint 17 is an interaction clarity and visual system pass. It standardizes the app around clearer hero readouts, metric strips, analysis panels, detail panels, action panels, target status groups, and decision labels without changing the static architecture or analytics formulas. Overview now reads more like mission control, target chips are metric-specific, Audience has a clearer selected-segment path, Calendar pressure is more visual, Newsletters and Campaigns scan by rank/revenue/risk/recommendation, Data targets are grouped by business, engagement, and safety goals, and the Report/drawer are cleaner for screenshots and print.
-
-Sprint 18 adds a GitHub Actions quality gate and Vercel deployment preparation. CI verifies the npm install, tests, lint, typecheck, production build, and source-clean packaging rules on pull requests and pushes to `main`. Vercel remains connected through Git for preview and production deployments.
-
-Sprint 19 adds the first real data adapter boundary. The existing demo newsletter JSON, synthetic audience members, and default targets are normalized through `demoJsonAdapter` before dashboard analytics run. The Data screen reports adapter status, normalized record counts, validation issues, and future source placeholders without adding live integrations or upload UI.
-
-Sprint 20 adds a second implemented adapter for static flat CSV/export-shaped rows. The fake fixture in `data/sample-newsletter-export-rows.json` is parsed, validated, merged, and normalized into the same dataset shape as Demo JSON. The Data screen shows sample CSV readiness and required fields; `docs/source-mapping-examples.md` documents Klaviyo, Mailchimp, HubSpot, Customer.io, and generic CSV mappings. There is still no upload UI or live CRM/ESP integration.
-
-Sprint 22 adds an editable column-mapping preview to the Data screen. Users can remap unrecognized source fields to normalized Campaign Pulse fields before import. An alias map auto-infers common ESP/CRM export variants (`send_date → sendDate`, `recipients → sent`, `opens_unique → opens`, etc.) with `inferred` confidence. Per-field dropdowns let users override any mapping; confidence becomes `manual`. Mapping confidence is now `exact | inferred | manual | missing`. The accepted/rejected row counts and diagnostics table update live as mappings change. Duplicate source-column mappings and missing required fields produce inline warnings. Custom mapping persists in `localStorage` under `campaign_pulse_column_mapping_v1`. No upload UI, live CRM/ESP integration, backend, database, auth, or OAuth were added.
-
-Sprint 23 adds a client-side CSV upload scaffold to the Data screen. Browser `FileReader` reads `.csv` files locally, a dependency-free parser handles headers, quoted values, commas inside quotes, blank lines, trimming, and basic malformed-row errors, and the existing mapping/diagnostics flow runs against uploaded rows. Valid normalized data can replace Demo JSON for the current in-memory dashboard session; users can return to Demo JSON at any time. Uploaded files and normalized datasets are not persisted or sent to a backend.
-
-Sprint 24 adds a browser-only export pack and final portfolio-capture polish. Data can export the active normalized dataset, target settings, adapter validation report, and import diagnostics as JSON. Newsletters, Audience, and Campaigns export current-month CSV views, while Report exports its monthly memo data as JSON and keeps browser printing dependency-free. Safe filenames include the source, reporting month, export purpose, and download date.
-
-Sprint 21 adds an inspectable import-readiness console to the Data screen. The static CSV/export fixture is inspected through a column-mapping preview that shows detected source columns, normalized field destinations, mapping confidence (`exact | inferred | missing`), and a required-fields checklist. Per-row diagnostics report accepted and rejected rows with error type, affected field, raw value, and human-readable reason. An import-readiness summary shows total, accepted, and rejected row counts alongside normalized entity counts. All diagnostics are additive; the normalized dataset shape and active dashboard source are unchanged. There is still no upload UI, editable mappings, or live CRM/ESP integration.
-
-## Data Model
-
-The live dashboard keeps its raw, multi-month static source files:
+Both implemented sources produce the same normalized dataset:
 
 ```text
-data/newsletter-performance.json
-data/audience-members.json
-data/targets.json
+source rows
+  -> column mapping
+  -> validation and rejected-row diagnostics
+  -> adapter normalization
+  -> campaigns, segments, newsletters, segment performance, targets
+  -> computed analytics and target evaluation
+  -> dashboard workspaces and exports
 ```
 
-Sprint 19 routes those files through:
+Implemented adapters:
 
-```text
-demo JSON -> adapter validation -> normalized dataset -> computed analytics -> dashboard
-```
+- `demoJsonAdapter`: validates and normalizes the bundled demo JSON, synthetic audience members, and default targets.
+- `csvExportAdapter`: validates flat one-newsletter × one-segment rows and merges them into the normalized model.
 
-The adapter contract lives in `lib/adapters/`. `demoJsonAdapter` handles the active dashboard source and `csvExportAdapter` handles the static fake flat-row fixture. Klaviyo, Mailchimp, HubSpot, and Customer.io remain typed future placeholders only.
+Klaviyo, Mailchimp, HubSpot, and Customer.io are documented mapping targets only; there are no live vendor integrations. See [docs/data-adapter-contract.md](docs/data-adapter-contract.md) and [docs/source-mapping-examples.md](docs/source-mapping-examples.md).
 
-The normalized dataset contains:
+## Local CSV upload workflow
 
-- campaigns
-- segments
-- newsletters
-- flattened segment performance rows
-- audience members when available
-- targets when available
-- source metadata, imported timestamp, record counts, and validation status
+The Data workspace reads `.csv` files with browser `FileReader`. Nothing is uploaded to a server.
 
-Validation checks required arrays, unique newsletter IDs, campaign and segment references, numeric metrics, parseable dates, delivered vs sent, and non-negative counts. Missing optional audience, target, or metadata inputs produce warnings; missing required structures or invalid facts produce errors. See `docs/data-adapter-contract.md`.
+1. Select a local CSV file.
+2. Review parsed rows and detected columns.
+3. Accept inferred aliases or edit column mappings.
+4. Review missing/duplicate mappings and rejected-row diagnostics.
+5. Activate valid normalized data for the current browser session.
+6. Return to bundled Demo JSON at any time.
 
-Synthetic audience records use masked `.test` identities only. They are not real customer data and do not introduce a backend, database, auth, upload/import flow, external API, or AI/LLM call.
+Uploaded files, mappings for that upload, and normalized uploaded datasets are session-only. Refreshing the page restores Demo JSON.
 
-Targets support global, campaign, and segment scopes. There are no newsletter-level targets. Browser edits are saved to `localStorage` under the current browser profile; resetting on the Data screen restores the demo defaults from `data/targets.json`.
-
-The root shape is:
-
-```ts
-{
-  meta: {...},
-  campaigns: Campaign[],
-  segments: Segment[],
-  newsletters: Newsletter[]
-}
-```
-
-Each newsletter stores source facts only: campaign/content/offer metadata, send timestamps, raw aggregate counts, and raw `segmentPerformance[]` rows. Rates are calculated in the app:
-
-- Open Rate = `uniqueOpens / delivered`
-- CTR = `uniqueClicks / delivered`
-- CTOR = `uniqueClicks / uniqueOpens`
-- Conversion Rate = `orders / delivered`
-- RPR = `revenue / delivered`
-- Unsubscribe Rate = `unsubscribes / delivered`
-- Spam Rate = `spamComplaints / delivered`
-
-The dashboard does not use a backend, database, auth, external API, or environment variables. Sprint 23's upload flow is browser-local and session-only.
-
-Sprint 08 moved derived analytics fully into TypeScript utilities. The JSON does not store precomputed rates, saturation scores, fatigue diagnoses, rankings, insights, or recommendations. The dashboard derives month/year facets from `timing.sentAt` and defaults to the latest available reporting month.
-
-Sprint 12 audience charts are also computed in TypeScript from raw newsletter `segmentPerformance[]` facts plus the synthetic audience member data. Fake member rows are used only to demonstrate how a segment profile and sample table could feel in a real command center.
-
-Sprint 13 overview analytics live in TypeScript utilities and are calculated from raw `data/newsletter-performance.json` facts. The synthetic audience members remain demo-only support data for the Audience detail view and are not treated as real customer records.
-
-Sprint 15 did not change the data architecture. The app still reads raw local JSON facts and computes metrics, saturation, fatigue, insights, recommendations, and report values in TypeScript utilities.
-
-Sprint 16 keeps that architecture unchanged. Target status, target tolerance bands, and segment movement labels are computed in TypeScript from local demo facts plus browser-saved target settings. No backend, database, auth, upload/import, external API, AI/LLM call, PDF library, D3, or real customer data was added.
-
-Sprint 17 also keeps that architecture unchanged. It adds no backend, database, auth, upload/import flow, external API, AI/LLM call, PDF library, D3, new screens, or new analytics formulas. The work is limited to UI clarity, safer local target input parsing, and documentation.
-
-Sprint 19 changes the ingestion boundary, not the business meaning of the data. Metrics, saturation, fatigue, insights, recommendations, targets, and report values remain computed from normalized local facts. There is still no live CRM/API integration, backend, database, auth, upload UI, scheduled sync, webhook, OAuth, secret, or AI call.
-
-Sprint 20 proves export normalization readiness without changing the active dashboard source. CSV/export parsing trims whitespace, accepts common decimal/currency/percentage formatting, merges repeated references, and validates required fields, dates, numeric values, negative metrics, delivery sanity, and normalized references. No upload UI, live vendor API, backend, OAuth, or sync process was added.
-
-Sprint 23 lets a user-selected CSV reach that same adapter in memory:
-
-```text
-local .csv -> FileReader -> CSV parser -> editable mapping -> diagnostics
-  -> csvExportAdapter -> Uploaded CSV session
-```
-
-Session loading is blocked when parsing fails, required fields are not uniquely mapped, zero rows are accepted, adapter validation is `error`, or the normalized dataset has no campaigns, segments, or newsletters. Refreshing the page or choosing **Return to demo data** restores Demo JSON.
-
-## Browser Export Pack
-
-Sprint 24 exports the current client-side working state without a backend:
-
-- Data: normalized dataset JSON, target settings JSON, adapter validation JSON, and import diagnostics JSON.
-- Newsletters: current-month blended ranking CSV.
-- Audience: current-month segment value, movement, pressure, and target-status CSV.
-- Campaigns: current-month campaign performance and target-status CSV.
-- Report: monthly memo JSON plus browser print.
-
-CSV values are escaped for commas, quotes, and newlines, and downloads use UTF-8 so euro symbols and other international text remain intact. Demo JSON and an active Uploaded CSV session use the same export actions. Uploaded files and normalized uploaded datasets remain session-only.
-
-## Report Printing
-
-The Report screen uses `window.print()` and print-specific CSS only. App navigation, global controls, and export/print buttons are hidden; memo cards avoid page breaks where the browser allows it. No PDF library or server-side renderer is included.
-
-For a clean PDF or paper capture, disable browser print headers and footers in the browser print dialog. That setting is controlled by the user’s browser, not Campaign Pulse.
-
-## Target Editor
-
-The Data screen includes a simple target editor for:
-
-- global targets
-- campaign targets
-- segment targets
-
-Editable fields are monthly revenue, OR, CTR, CTOR, conversion rate, RPR, maximum unsubscribe rate, maximum spam rate, maximum sends per segment/week, and maximum pressure score. Campaign and segment targets inherit global defaults unless overridden. Save writes the settings to browser `localStorage`; Reset removes saved edits and reloads the demo defaults from `data/targets.json`.
-
-Target statuses use deterministic tolerance bands:
-
-- **On track:** actual meets or beats the target.
-- **Watch:** actual is within the tolerance band.
-- **Off track:** actual is outside the tolerance band.
-
-For maximum targets such as unsubscribe rate, spam rate, weekly sends, and pressure score, lower actuals are better.
-
-Sprint 17 makes status chips metric-specific in the UI, such as `Revenue on track`, `RPR on track`, `Pressure off track`, and `CTOR watch`, so compact rows do not require surrounding context to be understood.
-
-## Segment Movement
-
-Audience movement labels are deterministic and local:
-
-- **Growing:** revenue per recipient and engagement are improving without a meaningful unsubscribe lift.
-- **Stable:** movement stays inside the tolerance band.
-- **Declining:** value or engagement falls without enough unsubscribe relief.
-- **Fatigued:** synthetic member fatigue plus weak value, weak engagement, or high unsubscribe pressure needs attention.
-- **Recovering:** engagement or value improves while unsubscribe pressure eases.
-
-The movement logic uses month-level segment send trends from `segmentPerformance[]` and synthetic demo audience-member fatigue mix where useful.
-
-## Insight Engine
-
-The insight layer is rule-based and deterministic. It derives strategic reads from local data, including:
-
-- best and weakest newsletter
-- strongest revenue campaign
-- most valuable segment
-- most saturated segment
-- high open rate with low CTOR
-- low open rate with strong CTOR
-- revenue outliers
-- unsubscribe warnings
-- campaign decay
-- repeated promotional pressure
-
-Each insight includes a severity, evidence, recommendation, and related newsletter/campaign/segment IDs where relevant.
-
-## Saturation Heatmap
-
-The heatmap translates segment exposure into a weekly diagnostic view. It considers:
-
-- send count to the same segment
-- engagement movement
-- unsubscribe pressure
-- revenue efficiency
-- repeated campaign or creative pressure
-
-Cells are clickable and show the newsletters sent, average rates, saturation level, diagnosis, and recommended next action.
-
-## Data Intake Simulation
-
-Sprint 06 added a static intake rehearsal:
-
-```text
-cleaned Excel/API export -> validation -> normalization -> dashboard-ready preview
-```
-
-The raw sample lives in:
-
-```text
-data/import-sample.json
-```
-
-Each row represents one newsletter x one segment. Validation checks required fields, metric sanity, impossible delivered/open/click values, and duplicate newsletter-segment rows. The normalizer groups flat rows into campaigns, segments, and newsletters with raw `segmentPerformance[]` facts.
-
-This remains a static rehearsal fixture. Sprint 23 separately adds a real browser file picker, but the file never leaves the browser and is not persisted.
-
-Sprint 20 adds a separate adapter fixture:
-
-```text
-data/sample-newsletter-export-rows.json
-  -> csvExportAdapter
-  -> NormalizedDataset
-```
-
-The fixture is fake/demo-only and represents one newsletter x one segment per row. Mapping guidance lives in `docs/source-mapping-examples.md`.
-
-Recommended uploaded CSV headers:
+Recommended canonical headers:
 
 ```text
 sendDate,newsletterId,newsletterName,campaignId,campaignName,
@@ -287,151 +101,146 @@ segmentId,segmentName,sent,delivered,opens,clicks,orders,revenue,
 unsubscribes,spamComplaints,subject,creativeAngle
 ```
 
-The first 15 fields are required; `subject` and `creativeAngle` are optional. Common aliases can be inferred or manually remapped on the Data screen.
+## Target system
 
-## Tech Stack
+Targets exist at global, campaign, and segment scope. Campaign and segment targets inherit global defaults unless overridden. Supported targets include revenue, OR, CTR, CTOR, conversion rate, RPR, maximum unsubscribe rate, maximum spam rate, maximum weekly sends, and maximum pressure score.
 
-- Next.js App Router
+Target edits persist in the current browser profile under `localStorage`. They are not written to the demo files, shared between browsers, or stored remotely.
+
+## Export pack and report
+
+All exports are generated in the browser:
+
+- Data: normalized dataset, target settings, adapter validation, and import diagnostics as JSON.
+- Newsletters: current-month ranking as UTF-8 CSV.
+- Audience: current-month segment value, movement, pressure, and target status as UTF-8 CSV.
+- Campaigns: current-month campaign performance and target status as UTF-8 CSV.
+- Report: monthly memo data as JSON and browser print.
+
+For clean print/PDF capture, disable browser print headers and footers manually. Campaign Pulse does not include a PDF library or server-side renderer.
+
+## Tech stack
+
+- Next.js 14 App Router
+- React 18
 - TypeScript
 - Tailwind CSS
-- Static local JSON
-- ESLint with Next core web vitals
+- Recharts
+- Node test runner with `tsx`
+- ESLint
+- Static JSON and browser-local state
+- GitHub Actions
+- Vercel
 
-## Run Locally
+## Local setup
+
+Requirements: Node.js 20 and npm.
 
 ```bash
+git clone git@github.com:RaulMermans/campaign-pulse.git
+cd campaign-pulse
 npm ci
 npm run dev
 ```
 
-Then open:
+Open [http://localhost:3000](http://localhost:3000).
 
-```text
-http://localhost:3000
-```
+`package-lock.json` is the retained lockfile and npm is the project package manager. Do not add pnpm lock or workspace files unless the repository is deliberately migrated.
 
-## Verification
+## Package scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the local Next.js development server. |
+| `npm run test` | Run focused analytics, adapter, upload, target, and export tests. |
+| `npm run lint` | Run the Next.js ESLint checks. |
+| `npm run typecheck` | Run TypeScript without emitting files. |
+| `npm run build` | Create a production Next.js build. |
+| `npm run start` | Serve the production build locally. |
+| `npm run verify` | Run test, lint, typecheck, and build in sequence. |
+
+Full release verification:
 
 ```bash
-npm run verify
-```
-
-The combined verification command runs:
-
-```bash
+npm ci
 npm run test
 npm run lint
 npm run typecheck
 npm run build
-```
-
-For a clean deployment rehearsal:
-
-```bash
-npm ci
 npm run verify
-npm run start
+git diff --check
 ```
 
-Package manager decision: npm is the project standard for this demo. Keep `package-lock.json`; do not add pnpm lockfiles or workspace files unless the project is deliberately migrated and documented.
+## Vercel deployment
 
-GitHub Actions runs the same `test`, `lint`, `typecheck`, and `build` quality gate on pull requests and pushes to `main`. It also fails when generated/dependency artifacts or pnpm metadata are committed.
+The public demo is deployed at [campaign-pulse.vercel.app](https://campaign-pulse.vercel.app/).
 
-## Vercel Deployment
+Recommended Vercel project settings:
 
-Recommended platform: **Vercel**.
+| Setting | Value |
+| --- | --- |
+| Framework preset | Next.js |
+| Install command | `npm ci` |
+| Build command | `npm run build` |
+| Output directory | Vercel default |
+| Production branch | `main` |
+| Environment variables | None required |
 
-Import the GitHub repository into Vercel with these settings:
+Use Git integration for pull-request previews and production deployments from `main`. Confirm GitHub Actions passes before promoting a deployment.
 
-- Framework preset: Next.js
-- Install command: `npm ci`
-- Build command: `npm run build`
-- Output directory: leave the Vercel default
-- Environment variables: none required
-- Production branch: `main`
+## Demo data and security boundary
 
-Vercel handles preview deployments for branches and pull requests and production deployments from `main` through Git integration. No Vercel secrets are required for the app.
+All bundled records are synthetic. Masked audience identities use `.test` domains, and placeholder links use `example.com`. Do not replace them with customer data.
 
-Deployment data comes from local JSON demo files, including `data/newsletter-performance.json`, `data/targets.json`, and synthetic `.test` audience member records from `data/audience-members.json`. Synthetic audience members are demo-only and are not real customer data. Target edits persist only in the current browser’s `localStorage`; they are not stored on the server or shared between browsers.
+This repository has:
 
-### Vercel Deployment Checklist
+- no backend
+- no database
+- no authentication or authorization
+- no server-side uploads or persistent import jobs
+- no CRM/ESP API integration
+- no OAuth or API secrets
+- no AI/LLM calls
+- no required environment variables
 
-- Confirm GitHub Actions passes on `main`.
-- Import the repository with the settings above.
-- Leave the output directory at its default value.
-- Confirm no environment variables or deployment secrets are configured unnecessarily.
-- Confirm the preview deployment renders the Overview, Audience, Calendar, Newsletters, Campaigns, Data, and Report workspaces.
-- Confirm target edits survive a browser refresh through `localStorage` and reset correctly to demo defaults.
-- Promote or merge to `main` only after the preview deployment and CI quality gate pass.
+See [SECURITY.md](SECURITY.md) for the public-demo security scope.
 
-### Source-Clean Packaging Checklist
+## Known limitations
 
-- Keep `package-lock.json` as the only lockfile.
-- Do not commit `node_modules/`, `.next/`, `.pnpm-store/`, `tsconfig.tsbuildinfo`, `pnpm-lock.yaml`, or `pnpm-workspace.yaml`.
-- Keep logs, PID files, coverage output, screenshots/exports, and temporary ZIP/PDF artifacts out of the Vercel upload.
-- Keep application source and deployment inputs included: `app/`, `components/`, `lib/`, `data/`, `public/` when present, `package.json`, `package-lock.json`, `next.config.mjs`, and `README.md`.
+- This is a demo/local-first app, not a production SaaS service.
+- Uploaded CSV data exists only for the current browser session.
+- Target edits persist only in browser `localStorage`.
+- There is no real CRM/ESP API or scheduled synchronization.
+- There is no backend, database, auth, multi-user state, or server-side audit trail.
+- Browser print headers and footers must be disabled manually for clean output.
+- Current npm audit advisories should be handled in a dedicated future Next.js upgrade branch, with regression testing; do not use forced audit upgrades as release cleanup.
+- Analytics and recommendations are deterministic prototype logic and should be validated against production business definitions before operational use.
 
-### Dependency Audit Policy
+## Future production roadmap
 
-Run `npm audit --omit=dev` manually before production use. Do not run `npm audit fix --force` without a controlled framework-upgrade branch and a full QA pass because the current Next/PostCSS advisory path may require breaking framework changes.
+- Authenticated workspaces, tenant isolation, and role-based access.
+- Durable encrypted storage, import history, and server-side audit logs.
+- Vendor-specific CRM/ESP adapters with OAuth, pagination, retries, and scheduled sync.
+- Production-grade metric definitions and attribution configuration.
+- Dataset versioning, reconciliation, observability, and recovery workflows.
+- Accessibility, browser, performance, and security testing at production scope.
+- Controlled Next.js dependency upgrade and audit remediation.
 
-## Public Demo Checklist
+These are productionization directions, not committed prototype features.
 
-- Run `npm ci`.
-- Run `npm run verify`.
-- Confirm GitHub Actions passes test, lint, typecheck, build, and the source-clean guard.
-- Confirm Vercel preview and production deployments are handled through Git integration.
-- Optionally run `npm run start` and confirm the production server responds.
-- Confirm no `.env` files or secrets are present.
-- Confirm `data/newsletter-performance.json` remains the raw demo source and reaches analytics through `demoJsonAdapter`.
-- Confirm the Data screen uploads a local `.csv`, previews parsed rows and columns, supports editable mapping, updates accepted/rejected diagnostics, blocks invalid session loads, switches the source indicator to Uploaded CSV session, and returns to Demo JSON.
-- Confirm synthetic audience members remain clearly demo-only.
-- Confirm data intake simulation is clearly labeled as static demo data.
-- Confirm uploaded files remain browser-local and session-only, with no backend, database, auth, external API, or AI/LLM calls.
-- Confirm Data exports the active normalized dataset, targets, adapter validation, and diagnostics.
-- Confirm Newsletters, Audience, and Campaigns download current-month UTF-8 CSV files.
-- Confirm Report downloads memo JSON and print preview hides app chrome and action buttons.
-- Capture screenshots of:
-  - Overview mission-control decision brief
-  - Data import readiness and local CSV upload
-  - Audience all-segments overview
-  - selected segment detail panel
-  - Calendar Month view with compact send cards and `+N more`
-  - Newsletters table
-  - Report memo in screen and print preview
+## Recent sprint chronology
 
-Sprint 17 screenshot-readiness notes:
+- **Sprint 18:** GitHub Actions CI and Vercel deployment preparation.
+- **Sprint 19:** Adapter contract and Demo JSON adapter.
+- **Sprint 20:** CSV export adapter and CRM/ESP mapping documentation.
+- **Sprint 21:** Static column-mapping preview and rejected-row diagnostics.
+- **Sprint 22:** Editable column mapping with alias inference and local persistence.
+- **Sprint 23:** Client-side CSV upload and session-only dataset activation.
+- **Sprint 24:** Browser export pack, print polish, and portfolio capture preparation.
+- **Sprint 25:** Public repository, portfolio case study, release checklist, and final packaging polish.
 
-- Overview above the fold should show business health, revenue vs target, engagement vs target, pressure risk, and best next move in one read.
-- Audience screenshots should capture both the all-segment surface and the selected segment detail hero with movement, target, and recommended move visible.
-- Calendar Month view should show pressure rails, selected day state, compact clickable sends, and `+N more` overflow.
-- Newsletters and Campaigns should scan by recommendation, target exceptions, revenue, risk, and click affordance.
-- Report and drawer screenshots should show the compact target strip and the Main Read -> Recommended Move -> Evidence flow.
+The full history is documented in [docs/sprint-plan.md](docs/sprint-plan.md).
 
-## Public Safety
+## Project workflow reference
 
-No secrets, API keys, private URLs, personal data, or environment variables are required for this project.
-
-The sample URLs in the mock data use `https://example.com/campaign-pulse-demo` and are placeholders only.
-
-Campaign Pulse remains local-first and backend-free. Bundled demo facts ship with the static app, target edits stay in browser `localStorage`, and uploaded CSV data stays in memory for the current session only. Export downloads are created in the browser and are not transmitted to Vercel or another service.
-
-## Roadmap
-
-- Public demo screenshots and short product walkthrough
-- Invalid-row import examples and schema documentation
-- Campaign drill-down timelines
-- Suppression and recovery-plan scenarios
-- Optional persisted ingestion in a future non-static version
-- Optional live CRM/ESP adapters after the local CSV contract is proven
-- Safe framework upgrade planning for future Next.js major versions
-
-## Non-Goals
-
-- Backend services
-- Database persistence
-- Authentication
-- Persistent file storage/import jobs
-- External API sync
-- AI-generated recommendations
-- PDF export libraries
+The project documentation references the curated vibe-coding workflow collection at [awesome-vibe-coding](https://github.com/filipecalegario/awesome-vibe-coding).

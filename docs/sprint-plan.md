@@ -441,88 +441,6 @@ Status:
 - No live CRM/API integration, backend, database, auth, upload UI, scheduled sync, webhook, OAuth, secrets, AI/LLM calls, new screens, or major UX redesign were added.
 - Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
 
-## Sprint 22 - Editable Column Mapping Preview
-
-Goal: Let users remap unrecognized source columns to normalized Campaign Pulse fields locally before import.
-
-Deliverables:
-
-- `MappingConfidence` extended to `exact | inferred | manual | missing`.
-- `MappingValidationState` type: `mapped | missing | duplicate | invalid`.
-- `EditableMappingEntry` with `sourceField`, `normalizedField`, `required`, `description`, `detectedSourceColumn`, `selectedSourceColumn`, `confidence`, and `validationState`.
-- `EditableColumnMapping` with `availableSourceColumns`, `entries`, and `warnings`.
-- `ALIAS_MAP` for common ESP/CRM export column variants: `send_date → sendDate`, `campaign → campaignName`, `email_name → newsletterName`, `recipients → sent`, `opens_unique → opens`, `clicks_unique → clicks`, `placed_order → orders`, `revenue_eur → revenue`, `unsub → unsubscribes`, `spam → spamComplaints`.
-- `buildEditableColumnMapping(availableSourceColumns, savedMapping?)` — auto-detects via exact match and alias inference; applies saved manual overrides.
-- `applyMappingToRows(rows, entries)` — transforms source rows by mapping selected source columns to canonical field names before adapter normalization.
-- Data screen `EditableMappingSection` component with:
-  - Per-field dropdowns showing all detected source columns plus `— unmapped —`.
-  - Confidence badge (`exact | inferred | manual | missing`).
-  - Status badge (`mapped | missing | duplicate | invalid`).
-  - Per-field Reset button (reverts to auto-detected, removes from `localStorage`).
-  - Reset-all button (clears the full `localStorage` mapping).
-  - Live accepted/rejected row counts updated after mapping.
-  - Live diagnostics table updated after mapping.
-  - Inline warnings for duplicate source-column mappings and missing required fields.
-  - Alias map reference panel.
-- `localStorage` persistence under `campaign_pulse_column_mapping_v1` for demo continuity.
-- 15 new tests covering exact mapping, inferred alias mapping, manual mapping, reset mapping, duplicate mapping warning, missing required field warning, invalid column detection, `applyMappingToRows` aliased columns, preserved original keys, manual override, and null-entry skip.
-- README, `docs/sprint-plan.md`, and `docs/data-adapter-contract.md` updated.
-
-Status:
-
-- Implemented as the smallest complete adapter-usability sprint.
-- Static fixture only; no upload UI, live CRM/ESP API, backend, database, auth, OAuth, scheduled sync, webhooks, AI calls, new major screens, or major UX redesign were added.
-- All existing tests pass; 58 total tests now pass.
-- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
-
-## Sprint 23 - Client-Side CSV Upload UI Scaffold
-
-Goal: Let users inspect and activate a local CSV export for the current dashboard session without adding server-side ingestion.
-
-Deliverables:
-
-- Dependency-free CSV text parser with header rows, quoted values, commas inside quotes, blank-line handling, trimming, and basic parse errors.
-- Data-screen `.csv` file input using browser `FileReader` only, with local-only note, file name, row count, parse status, and reset action.
-- Uploaded row and detected-column preview.
-- Existing editable mapping, required-field checklist, accepted/rejected summary, and rejected-row diagnostics reused for uploaded rows.
-- Guarded **Use uploaded data for this session** action that normalizes through `csvExportAdapter`.
-- Blocking reasons for parse errors, invalid required mappings, zero accepted rows, adapter validation errors, or empty campaigns/segments/newsletters.
-- Page-level in-memory dataset state with source indicators for `Demo JSON` and `Uploaded CSV session`.
-- **Return to demo data** action; bundled demo JSON remains unchanged.
-- Focused parser, mapping/normalization, row rejection, and session-load guard tests.
-- README and adapter-contract documentation updates.
-
-Status:
-
-- Implemented as a client-side, session-only scaffold.
-- Uploaded files are read locally with `FileReader`; files and normalized datasets are not persisted.
-- No backend, database, auth, API, OAuth, secret, scheduled sync, webhook, AI call, live CRM integration, new major screen, or major UX redesign was added.
-- Recommended CSV shape remains one newsletter x one segment per row.
-- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
-
-## Sprint 21 - Static Column-Mapping Preview + Rejected-Row Diagnostics
-
-Goal: Make the Data screen show an inspectable import-readiness console: detected columns, mapped fields, accepted rows, rejected rows, and validation reasons.
-
-Deliverables:
-
-- `lib/adapters/columnMapping.ts` with `MappingConfidence` (`exact | inferred | missing`), `ColumnMappingEntry`, `ColumnMappingPreview`, `ImportReadinessSummary` types, and `buildColumnMappingPreview` and `buildImportReadinessSummary` helper functions.
-- `buildRowDiagnostics` export from `lib/adapters/csvExportAdapter.ts` with `RowDiagnostic` and `RowDiagnosticIssue` types. Each diagnostic includes row number, accepted flag, source identifiers (newsletterId, campaignId, segmentId), and per-issue error type, human-readable reason, affected field, and raw value.
-- Refactored `parseRowIsolated` inside the CSV adapter so per-row issues are tracked separately and accumulated; existing normalization output is unchanged.
-- Import-readiness summary with total, accepted, rejected, and warning row counts plus normalized entity counts and validation status.
-- Data screen now shows a compact import-readiness console section with: summary stats strip, column-mapping table (source field, normalized field, confidence, required flag), required-fields checklist with pass/fail indicators, rejected-row diagnostics table, accepted-rows confirmation panel, future-source placeholders, and unmapped-column callout.
-- Column-mapping preview tests in `lib/adapters/columnMapping.test.ts`.
-- Row-diagnostics tests added to `lib/adapters/csvExportAdapter.test.ts`: accepted/rejected counts, row number, identifiers, invalid dates, invalid numbers, negative metrics, delivered exceeds sent, and missing required fields with reason text.
-- `package.json` test command includes `columnMapping.test.ts`.
-
-Status:
-
-- Implemented as the smallest complete adapter-inspection sprint.
-- Static fixture only; no upload UI, live CRM/ESP API, editable mappings, backend, database, auth, OAuth, scheduled sync, webhooks, AI calls, new major screens, or major UX redesign were added.
-- CSV adapter shape and normalized dataset output are unchanged; diagnostics are additive.
-- Demo JSON adapter, CSV adapter, all existing analytics, targets, tests, CI, and Vercel deployment remain intact.
-- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
-
 ## Sprint 20 - CSV Export Adapter + CRM/ESP Mapping Docs
 
 Goal: Prove that realistic flat ESP/CRM export rows can normalize into the existing adapter contract without adding upload UI or live integrations.
@@ -544,6 +462,62 @@ Status:
 - Demo JSON remains the active dashboard source; the CSV/export fixture proves a second source can produce the same normalized dataset shape.
 - The adapter assumes one newsletter x one segment per row and sums row metrics into newsletter aggregates.
 - No upload UI, live CRM/ESP API, backend, database, auth, OAuth, secrets, scheduled sync, webhooks, AI calls, new screens, or major UX redesign were added.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
+## Sprint 21 - Static Column-Mapping Preview + Rejected-Row Diagnostics
+
+Goal: Make the Data screen show an inspectable import-readiness console with detected columns, mapped fields, accepted rows, rejected rows, and validation reasons.
+
+Deliverables:
+
+- Static column-mapping preview with required-field and confidence states.
+- Per-row diagnostics with source identifiers, affected fields, raw values, and human-readable rejection reasons.
+- Import-readiness summary for accepted/rejected rows and normalized entity counts.
+- Data workspace tables for mapping, required fields, accepted rows, rejected rows, and future-source placeholders.
+- Focused column-mapping and row-diagnostics tests.
+
+Status:
+
+- Implemented as adapter-inspection work only; normalized output and active Demo JSON behavior remained unchanged.
+- No upload UI, editable mappings, live CRM/ESP API, backend, database, auth, OAuth, scheduled sync, webhook, or AI call was added.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
+## Sprint 22 - Editable Column Mapping Preview
+
+Goal: Let users remap unrecognized source columns to normalized Campaign Pulse fields locally before import.
+
+Deliverables:
+
+- Exact, inferred, manual, and missing mapping confidence states.
+- Validation states for mapped, missing, duplicate, and invalid selections.
+- Alias inference for common ESP/CRM export headers.
+- Per-field mapping controls, reset actions, warnings, and live diagnostics.
+- Static-fixture mapping persistence in browser `localStorage`.
+- Focused tests for inference, manual overrides, resets, duplicate/missing states, and mapped-row transformation.
+
+Status:
+
+- Implemented as adapter-usability work against the static fixture.
+- No upload UI, live CRM/ESP API, backend, database, auth, OAuth, scheduled sync, webhook, or AI call was added.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
+## Sprint 23 - Client-Side CSV Upload UI Scaffold
+
+Goal: Let users inspect and activate a local CSV export for the current dashboard session without adding server-side ingestion.
+
+Deliverables:
+
+- Dependency-free CSV parser and browser `FileReader` workflow.
+- Uploaded row/column preview using the existing editable mapping and diagnostics.
+- Guarded session activation through `csvExportAdapter`.
+- In-memory source switching between Demo JSON and Uploaded CSV.
+- Focused parser, mapping, rejection, normalization, and session-load tests.
+
+Status:
+
+- Implemented as a client-side, session-only scaffold.
+- Uploaded files and normalized datasets are not persisted or transmitted.
+- No backend, database, auth, API, OAuth, secret, scheduled sync, webhook, AI call, or live CRM integration was added.
 - Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
 
 ## Sprint 24 - Export Pack + Portfolio Capture
@@ -570,4 +544,25 @@ Status:
 - Browser print headers and footers remain a user-controlled browser setting and should be disabled in the print dialog for a clean portfolio capture.
 - Campaign Pulse remains local-first with no backend, database, auth, API, OAuth, secrets, scheduled sync, webhook, persistent uploaded datasets, or AI calls.
 - Vercel deployment remains Git-connected with `npm ci`, `npm run build`, default output settings, and no required environment variables.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
+## Sprint 25 - Portfolio Release Polish + Public Repo Finalization
+
+Goal: Make the public repository and portfolio presentation clean, credible, deployable, and ready to share without adding product features.
+
+Deliverables:
+
+- Public-portfolio README with product pitch, live demo, architecture, data flow, adapter framework, local CSV workflow, target system, exports, setup, verification, Vercel settings, limitations, and production roadmap.
+- Correct Sprint 18–24 chronology in the public README.
+- `docs/portfolio-case-study.md` positioning Campaign Pulse as a local-first marketing intelligence tool and advanced frontend data-product prototype.
+- `docs/public-release-checklist.md` covering source cleanliness, install and verification commands, CI, Vercel, screenshots, audit notes, links, and repository visibility.
+- Mermaid architecture/data-flow diagram.
+- Final screenshot capture list for the core portfolio states.
+- Repository ignore polish for dependency, build, pnpm, log, ZIP/PDF, backup, and temporary artifacts.
+- Static-app `SECURITY.md`.
+
+Status:
+
+- Implemented as documentation, packaging, and release polish only.
+- No backend, database, auth, API, OAuth, AI call, analytics, screen, or product feature was added.
 - Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
