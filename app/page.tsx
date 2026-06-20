@@ -31,6 +31,8 @@ import { SegmentIntelligence } from "@/components/SegmentIntelligence";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TargetComparisonCard, TargetStatusBadge } from "@/components/TargetStatusBadge";
 import { demoJsonAdapter } from "@/lib/adapters/demoJsonAdapter";
+import type { NormalizedDataset } from "@/lib/adapters/normalizedSchema";
+import { labelUploadedSessionDataset } from "@/lib/adapters/uploadSession";
 import { formatCurrency, formatCurrencyPrecise, formatMonth, formatNumber, formatPercent } from "@/lib/formatters";
 import { getGlobalInsights, getRecommendedNextActions } from "@/lib/newsletterInsights";
 import { getOverviewAnalytics, type CampaignContributionPoint, type OverviewAnalytics, type SegmentOpportunityPoint } from "@/lib/overviewAnalytics";
@@ -62,7 +64,6 @@ const adapterResult = demoJsonAdapter.normalize({
   targets: defaultTargets
 });
 const data = adapterResult.dataset;
-const availableMonths = getAvailableMonths(data.newsletters);
 
 type ScreenId = "overview" | "calendar" | "performance" | "campaigns" | "segments" | "insights" | "report" | "data-intake";
 
@@ -108,25 +109,27 @@ const screenCopy: Record<ScreenId, { title: string; description: string }> = {
   },
   "data-intake": {
     title: "Data",
-    description: "Inspect Demo JSON and sample CSV adapter readiness, normalized records, validation results, targets, and intake rehearsal."
+    description: "Upload a local CSV, inspect mapping and diagnostics, or manage the current session source."
   }
 };
 
 export default function Home() {
+  const [activeData, setActiveData] = useState<NormalizedDataset>(data);
   const [selectedMonth, setSelectedMonth] = useState(getLatestMonth(data.newsletters));
   const [activeScreen, setActiveScreen] = useState<ScreenId>("overview");
   const [selectedNewsletter, setSelectedNewsletter] = useState<Newsletter | null>(null);
   const [targetSettings, setTargetSettings] = useState<TargetSettings>(() => getDefaultTargetSettings(data.targets ?? undefined));
 
-  const newsletters = useMemo(() => filterNewslettersByMonth(data.newsletters, selectedMonth), [selectedMonth]);
+  const availableMonths = useMemo(() => getAvailableMonths(activeData.newsletters), [activeData.newsletters]);
+  const newsletters = useMemo(() => filterNewslettersByMonth(activeData.newsletters, selectedMonth), [activeData.newsletters, selectedMonth]);
   const campaigns = useMemo(() => {
     const activeCampaignIds = new Set(newsletters.map((newsletter) => newsletter.campaign.id));
-    return data.campaigns.filter((campaign) => activeCampaignIds.has(campaign.id));
-  }, [newsletters]);
+    return activeData.campaigns.filter((campaign) => activeCampaignIds.has(campaign.id));
+  }, [activeData.campaigns, newsletters]);
   const segments = useMemo(() => {
     const activeSegmentIds = new Set(newsletters.flatMap((newsletter) => newsletter.segmentPerformance.map((segment) => segment.segmentId)));
-    return data.segments.filter((segment) => activeSegmentIds.has(segment.id));
-  }, [newsletters]);
+    return activeData.segments.filter((segment) => activeSegmentIds.has(segment.id));
+  }, [activeData.segments, newsletters]);
   const insights = useMemo(() => getGlobalInsights(newsletters, campaigns, segments), [campaigns, newsletters, segments]);
   const actions = useMemo(() => getRecommendedNextActions(insights), [insights]);
 
@@ -147,6 +150,19 @@ export default function Home() {
     setTargetSettings(resetTargetSettings(data.targets ?? undefined));
   };
 
+  const handleUseUploadedData = (uploadedDataset: NormalizedDataset) => {
+    const sessionDataset = labelUploadedSessionDataset(uploadedDataset);
+    setActiveData(sessionDataset);
+    setSelectedMonth(getLatestMonth(sessionDataset.newsletters));
+    setSelectedNewsletter(null);
+  };
+
+  const handleReturnToDemoData = () => {
+    setActiveData(data);
+    setSelectedMonth(getLatestMonth(data.newsletters));
+    setSelectedNewsletter(null);
+  };
+
   const copy = screenCopy[activeScreen];
 
   return (
@@ -156,7 +172,8 @@ export default function Home() {
 
         <main className="min-w-0">
           <TopBar
-            projectName={data.metadata.sourceMetadata.projectName}
+            projectName={activeData.metadata.sourceMetadata.projectName}
+            sourceLabel={activeData.metadata.source.label}
             activeScreen={activeScreen}
             month={selectedMonth}
             availableMonths={availableMonths}
@@ -180,15 +197,17 @@ export default function Home() {
                 screen={activeScreen}
                 month={selectedMonth}
                 availableMonths={availableMonths}
-                currency={data.metadata.sourceMetadata.currency}
+                currency={activeData.metadata.sourceMetadata.currency}
                 newsletters={newsletters}
-                allNewsletters={data.newsletters}
+                allNewsletters={activeData.newsletters}
                 campaigns={campaigns}
-                allCampaigns={data.campaigns}
+                allCampaigns={activeData.campaigns}
                 segments={segments}
-                allSegments={data.segments}
-                audienceMembers={data.audienceMembers}
-                adapterMetadata={data.metadata}
+                allSegments={activeData.segments}
+                audienceMembers={activeData.audienceMembers}
+                adapterMetadata={activeData.metadata}
+                currentSourceLabel={activeData.metadata.source.label}
+                isUploadedSession={activeData.metadata.source.id === "uploaded-csv-session"}
                 targetSettings={targetSettings}
                 insights={insights}
                 actions={actions}
@@ -197,6 +216,8 @@ export default function Home() {
                 onSelectNewsletter={setSelectedNewsletter}
                 onSaveTargets={handleSaveTargets}
                 onResetTargets={handleResetTargets}
+                onUseUploadedData={handleUseUploadedData}
+                onReturnToDemoData={handleReturnToDemoData}
               />
             ) : (
               <EmptyMonth month={selectedMonth} />
@@ -251,6 +272,7 @@ function ProductSidebar({ activeScreen, onScreenChange }: { activeScreen: Screen
 
 function TopBar({
   projectName,
+  sourceLabel,
   activeScreen,
   month,
   availableMonths,
@@ -258,6 +280,7 @@ function TopBar({
   onScreenChange
 }: {
   projectName: string;
+  sourceLabel: string;
   activeScreen: ScreenId;
   month: string;
   availableMonths: string[];
@@ -271,8 +294,9 @@ function TopBar({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h2 className="text-lg font-semibold tracking-normal text-ink md:text-xl">{projectName}</h2>
             <span className="rounded-md border border-line bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-muted">{formatMonth(month)}</span>
+            <span className="rounded-md border border-line bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-muted">{sourceLabel}</span>
           </div>
-          <p className="mt-1 text-xs leading-5 text-muted">Static local dataset, metrics computed from raw newsletter facts.</p>
+          <p className="mt-1 text-xs leading-5 text-muted">Local session data, metrics computed from normalized newsletter facts.</p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px] xl:w-[520px]">
@@ -326,6 +350,8 @@ function ScreenContent({
   allSegments,
   audienceMembers,
   adapterMetadata,
+  currentSourceLabel,
+  isUploadedSession,
   targetSettings,
   insights,
   actions,
@@ -333,7 +359,9 @@ function ScreenContent({
   onScreenChange,
   onSelectNewsletter,
   onSaveTargets,
-  onResetTargets
+  onResetTargets,
+  onUseUploadedData,
+  onReturnToDemoData
 }: {
   screen: ScreenId;
   month: string;
@@ -347,6 +375,8 @@ function ScreenContent({
   allSegments: Segment[];
   audienceMembers: AudienceMember[];
   adapterMetadata: typeof data.metadata;
+  currentSourceLabel: string;
+  isUploadedSession: boolean;
   targetSettings: TargetSettings;
   insights: NewsletterInsight[];
   actions: RecommendedAction[];
@@ -355,6 +385,8 @@ function ScreenContent({
   onSelectNewsletter: (newsletter: Newsletter) => void;
   onSaveTargets: (settings: TargetSettings) => void;
   onResetTargets: () => void;
+  onUseUploadedData: (dataset: NormalizedDataset) => void;
+  onReturnToDemoData: () => void;
 }) {
   const [isAudienceDrillIn, setIsAudienceDrillIn] = useState(false);
 
@@ -421,7 +453,21 @@ function ScreenContent({
     return <MonthlyReport month={month} currency={currency} campaigns={campaigns} segments={segments} newsletters={newsletters} targetSettings={targetSettings} />;
   }
 
-  return <DataIntakeSimulation campaigns={allCampaigns} segments={allSegments} currency={currency} adapterMetadata={adapterMetadata} targetSettings={targetSettings} onSaveTargets={onSaveTargets} onResetTargets={onResetTargets} />;
+  return (
+    <DataIntakeSimulation
+      campaigns={allCampaigns}
+      segments={allSegments}
+      currency={currency}
+      adapterMetadata={adapterMetadata}
+      currentSourceLabel={currentSourceLabel}
+      isUploadedSession={isUploadedSession}
+      targetSettings={targetSettings}
+      onSaveTargets={onSaveTargets}
+      onResetTargets={onResetTargets}
+      onUseUploadedData={onUseUploadedData}
+      onReturnToDemoData={onReturnToDemoData}
+    />
+  );
 }
 
 function OverviewScreen({

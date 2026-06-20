@@ -243,11 +243,14 @@ export function buildEditableColumnMapping(
   const missingRequiredWarnings = validatedEntries
     .filter((e) => e.required && e.validationState === "missing")
     .map((e) => `Required field "${e.sourceField}" (${e.description}) has no source column selected.`);
+  const invalidWarnings = validatedEntries
+    .filter((e) => e.validationState === "invalid")
+    .map((e) => `Source column "${e.selectedSourceColumn}" selected for "${e.sourceField}" is not available.`);
 
   return {
     availableSourceColumns,
     entries: validatedEntries,
-    warnings: [...duplicateWarnings, ...missingRequiredWarnings]
+    warnings: [...duplicateWarnings, ...missingRequiredWarnings, ...invalidWarnings]
   };
 }
 

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --import tsx --test lib/newsletterCalendar.test.ts lib/newsletterInsights.test.ts lib/audienceMetrics.test.ts lib/overviewAnalytics.test.ts lib/targetEvaluation.test.ts lib/adapters/demoJsonAdapter.test.ts lib/adapters/csvExportAdapter.test.ts lib/adapters/columnMapping.test.ts",
+    "test": "node --import tsx --test lib/newsletterCalendar.test.ts lib/newsletterInsights.test.ts lib/audienceMetrics.test.ts lib/overviewAnalytics.test.ts lib/targetEvaluation.test.ts lib/adapters/demoJsonAdapter.test.ts lib/adapters/csvExportAdapter.test.ts lib/adapters/columnMapping.test.ts lib/adapters/csvParser.test.ts lib/adapters/uploadSession.test.ts",
     "typecheck": "tsc --noEmit",
     "verify": "npm run test && npm run lint && npm run typecheck && npm run build"
   },

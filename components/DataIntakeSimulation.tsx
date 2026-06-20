@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import importRows from "@/data/import-sample.json";
 import sampleExportRows from "@/data/sample-newsletter-export-rows.json";
 import type { Campaign, Segment } from "@/lib/newsletterTypes";
 import type { CsvExportRow } from "@/lib/adapters/csvExportAdapter";
 import { buildRowDiagnostics, csvExportAdapter } from "@/lib/adapters/csvExportAdapter";
+import { parseCsvText, type CsvParseResult } from "@/lib/adapters/csvParser";
 import {
   buildColumnMappingPreview,
   buildEditableColumnMapping,
   buildImportReadinessSummary,
   applyMappingToRows
 } from "@/lib/adapters/columnMapping";
-import type { NormalizedDatasetMetadata } from "@/lib/adapters/normalizedSchema";
+import type { NormalizedDataset, NormalizedDatasetMetadata } from "@/lib/adapters/normalizedSchema";
 import { futureAdapterSources } from "@/lib/adapters/types";
+import { assessUploadedSessionLoad } from "@/lib/adapters/uploadSession";
 import type { RawNewsletterImportRow } from "@/lib/importTypes";
 import { normalizeImportRows } from "@/lib/importNormalizer";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
@@ -44,8 +46,12 @@ interface DataIntakeSimulationProps {
   currency: string;
   adapterMetadata: NormalizedDatasetMetadata;
   targetSettings: TargetSettings;
+  currentSourceLabel: string;
+  isUploadedSession: boolean;
   onSaveTargets: (settings: TargetSettings) => void;
   onResetTargets: () => void;
+  onUseUploadedData: (dataset: NormalizedDataset) => void;
+  onReturnToDemoData: () => void;
 }
 
 const targetGroups: Array<{
@@ -79,7 +85,19 @@ const targetGroups: Array<{
   }
 ];
 
-export function DataIntakeSimulation({ campaigns, segments, currency, adapterMetadata, targetSettings, onSaveTargets, onResetTargets }: DataIntakeSimulationProps) {
+export function DataIntakeSimulation({
+  campaigns,
+  segments,
+  currency,
+  adapterMetadata,
+  targetSettings,
+  currentSourceLabel,
+  isUploadedSession,
+  onSaveTargets,
+  onResetTargets,
+  onUseUploadedData,
+  onReturnToDemoData
+}: DataIntakeSimulationProps) {
   const normalized = normalizeImportRows(rows);
   const summary = normalized.importSummary;
   const totalRevenue = normalized.newsletters.reduce((total, newsletter) => total + newsletter.metrics.revenue, 0);
@@ -134,13 +152,20 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
 
   return (
     <div className="grid gap-4">
+      <UploadedCsvPanel
+        currentSourceLabel={currentSourceLabel}
+        isUploadedSession={isUploadedSession}
+        onUseUploadedData={onUseUploadedData}
+        onReturnToDemoData={onReturnToDemoData}
+      />
+
       <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">
         <div className="flex flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Adapter readiness</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">Normalized data source</h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              The dashboard consumes Demo JSON through the adapter contract. A static CSV/export fixture now proves a second source can reach the same normalized shape.
+              The dashboard consumes the current session source through the adapter contract. Demo JSON remains available, and uploaded CSV data stays in memory only.
             </p>
           </div>
           <StatusBadge
@@ -161,7 +186,7 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Current adapter</p>
-                <h3 className="mt-2 text-lg font-semibold text-ink">Demo JSON</h3>
+                <h3 className="mt-2 text-lg font-semibold text-ink">{currentSourceLabel}</h3>
               </div>
               <StatusBadge
                 severity={adapterMetadata.validation.status === "valid" ? "positive" : adapterMetadata.validation.status === "warning" ? "warning" : "critical"}
@@ -171,7 +196,7 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
             <dl className="mt-4 grid gap-3 text-sm">
               <div className="flex items-center justify-between gap-4">
                 <dt className="text-muted">Current source</dt>
-                <dd className="font-semibold text-ink">{adapterMetadata.source.label}</dd>
+                <dd className="font-semibold text-ink">{currentSourceLabel}</dd>
               </div>
               <div className="flex items-center justify-between gap-4 border-t border-line pt-3">
                 <dt className="text-muted">Adapter status</dt>
@@ -179,7 +204,7 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
               </div>
             </dl>
             <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-muted">
-              This remains the active dashboard source.
+              {isUploadedSession ? "Uploaded facts are active for this browser session only." : "The bundled Demo JSON is active."}
             </p>
           </article>
 
@@ -201,14 +226,14 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
               <PreviewStat label="Segment rows" value={formatNumber(sampleCsvResult.dataset.metadata.recordCounts.segmentPerformance)} />
             </div>
             <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-muted">
-              Static fake export rows only. The adapter is implemented; upload UI is not implemented yet.
+              Static fake export rows remain available as a mapping example alongside the local upload flow.
             </p>
           </article>
         </div>
 
         {[...adapterMetadata.validation.errors, ...adapterMetadata.validation.warnings].length ? (
           <article className="mt-5 rounded-lg border border-line bg-slate-50/75 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Demo JSON validation warnings and errors</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Current source validation warnings and errors</p>
             <ul className="mt-4 space-y-3">
               {[...adapterMetadata.validation.errors, ...adapterMetadata.validation.warnings].slice(0, 6).map((validationIssue) => (
                 <li
@@ -233,7 +258,7 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Import-readiness console</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">CSV column mapping preview</h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Static inspection of how detected source columns map to normalized fields. No upload UI yet.
+              Static inspection of how detected fixture columns map to normalized fields.
             </p>
           </div>
           <StatusBadge
@@ -401,11 +426,18 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
         </div>
 
         <p className="mt-4 text-xs leading-5 text-muted">
-          Static fake fixture only. No upload UI, live CRM/ESP API, backend, database, auth, OAuth, or scheduled sync.
+          Static fake fixture only. No live CRM/ESP API, backend, database, auth, OAuth, or scheduled sync.
         </p>
       </section>
 
-      <EditableMappingSection />
+      <EditableMappingSection
+        rows={sampleCsvRows as Record<string, unknown>[]}
+        availableColumns={availableSourceColumns}
+        storageKey={MAPPING_STORAGE_KEY}
+        eyebrow="Editable mapping preview"
+        title="Column mapping editor"
+        description="Remap fixture columns to normalized fields. Exact and inferred matches are auto-detected; custom fixture mapping persists in localStorage."
+      />
 
       <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">
         <div className="flex flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-end xl:justify-between">
@@ -413,7 +445,7 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Editable business targets</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">Target editor</h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Targets persist in this browser via localStorage. Source performance data remains local JSON demo data.
+              Targets persist in this browser via localStorage. Performance facts follow the active session source.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -506,7 +538,7 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
             </p>
           )}
           <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-muted">
-            This is static demo data only. No upload, backend, database, external API, or persistence exists in this sprint.
+            This is static demo data only. No backend, database, external API, or server-side persistence exists.
           </p>
         </article>
 
@@ -538,48 +570,252 @@ export function DataIntakeSimulation({ campaigns, segments, currency, adapterMet
   );
 }
 
-function EditableMappingSection() {
+function UploadedCsvPanel({
+  currentSourceLabel,
+  isUploadedSession,
+  onUseUploadedData,
+  onReturnToDemoData
+}: {
+  currentSourceLabel: string;
+  isUploadedSession: boolean;
+  onUseUploadedData: (dataset: NormalizedDataset) => void;
+  onReturnToDemoData: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState("");
+  const [parseResult, setParseResult] = useState<CsvParseResult | null>(null);
+  const [parseStatus, setParseStatus] = useState<"idle" | "reading" | "ready" | "error">("idle");
+  const [fileError, setFileError] = useState("");
+
+  const resetUpload = () => {
+    setFileName("");
+    setParseResult(null);
+    setParseStatus("idle");
+    setFileError("");
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setFileName(file.name);
+    setParseResult(null);
+    setFileError("");
+    setParseStatus("reading");
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        setFileError("The selected file could not be read as text.");
+        setParseStatus("error");
+        return;
+      }
+      const result = parseCsvText(reader.result);
+      setParseResult(result);
+      setParseStatus(result.errors.length > 0 ? "error" : "ready");
+    };
+    reader.onerror = () => {
+      setFileError("The selected file could not be read.");
+      setParseStatus("error");
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <section className="rounded-xl border border-ink/80 bg-card p-5 shadow-soft md:p-6">
+      <div className="flex flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-end xl:justify-between">
+        <div className="max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Client-side CSV upload</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">Load an export for this session</h2>
+          <p className="mt-3 text-sm leading-6 text-muted">
+            The browser reads the file locally with FileReader. The CSV is not uploaded, stored, or sent to a backend.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge severity={isUploadedSession ? "positive" : "neutral"} label={currentSourceLabel} />
+          {isUploadedSession ? (
+            <button
+              type="button"
+              onClick={onReturnToDemoData}
+              className="rounded-md border border-line bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-ink"
+            >
+              Return to demo data
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.6fr)]">
+        <label className="rounded-lg border border-dashed border-line bg-slate-50/75 p-5">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Choose CSV file</span>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleFileChange}
+            className="mt-3 block w-full text-sm text-muted file:mr-4 file:rounded-md file:border file:border-line file:bg-white file:px-4 file:py-2 file:text-sm file:font-semibold file:text-ink hover:file:bg-slate-50"
+          />
+          <p className="mt-3 text-xs leading-5 text-muted">Recommended shape: one newsletter × one segment per row.</p>
+        </label>
+
+        <article className="rounded-lg border border-line bg-slate-50/75 p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Parse status</p>
+          <dl className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-4"><dt className="text-muted">File</dt><dd className="truncate font-semibold text-ink">{fileName || "None selected"}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-muted">Rows</dt><dd className="font-semibold text-ink">{formatNumber(parseResult?.rows.length ?? 0)}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-muted">Status</dt><dd className="font-semibold capitalize text-ink">{parseStatus}</dd></div>
+          </dl>
+          {fileName ? (
+            <button
+              type="button"
+              onClick={resetUpload}
+              className="mt-4 text-xs font-semibold text-muted underline hover:text-ink"
+            >
+              Reset uploaded file
+            </button>
+          ) : null}
+        </article>
+      </div>
+
+      {fileError ? <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{fileError}</p> : null}
+
+      {parseResult ? (
+        <>
+          {parseResult.errors.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-800">CSV parse errors</p>
+              <ul className="mt-2 space-y-1 text-xs text-rose-800">
+                {parseResult.errors.slice(0, 8).map((error, index) => (
+                  <li key={`${error.row}-${index}`}>Row {error.row}: {error.message}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="mt-5 grid gap-4 xl:grid-cols-[0.7fr_1.3fr]">
+            <article className="rounded-lg border border-line bg-slate-50/75 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Detected columns</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {parseResult.columns.map((column) => (
+                  <span key={column} className="rounded-full border border-line bg-white px-2.5 py-1 text-xs font-mono text-ink">{column}</span>
+                ))}
+              </div>
+            </article>
+            <article className="min-w-0 rounded-lg border border-line bg-slate-50/75 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Parsed row preview</p>
+              <div className="mt-3 overflow-x-auto rounded-lg border border-line bg-white">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="bg-ink text-card">
+                    <tr>{parseResult.columns.map((column) => <th key={column} className="whitespace-nowrap px-3 py-2 font-semibold">{column}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {parseResult.rows.slice(0, 8).map((previewRow, rowIndex) => (
+                      <tr key={rowIndex} className="border-t border-line">
+                        {parseResult.columns.map((column) => <td key={column} className="max-w-[220px] truncate px-3 py-2 text-muted" title={previewRow[column]}>{previewRow[column] || "—"}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+
+          <EditableMappingSection
+            rows={parseResult.rows}
+            availableColumns={parseResult.columns}
+            parseErrorCount={parseResult.errors.length}
+            eyebrow="Uploaded-data mapping"
+            title="Map and validate uploaded rows"
+            description="Edit the detected mapping, review accepted and rejected rows, then load a valid normalized dataset into the dashboard session."
+            onUseDataset={onUseUploadedData}
+            embedded
+          />
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function EditableMappingSection({
+  rows,
+  availableColumns,
+  storageKey,
+  parseErrorCount = 0,
+  eyebrow,
+  title,
+  description,
+  onUseDataset,
+  embedded = false
+}: {
+  rows: Record<string, unknown>[];
+  availableColumns: string[];
+  storageKey?: string;
+  parseErrorCount?: number;
+  eyebrow: string;
+  title: string;
+  description: string;
+  onUseDataset?: (dataset: NormalizedDataset) => void;
+  embedded?: boolean;
+}) {
   const [savedMapping, setSavedMapping] = useState<Record<string, string | null> | null>(null);
 
   useEffect(() => {
+    if (!storageKey) {
+      setSavedMapping(null);
+      return;
+    }
     try {
-      const stored = localStorage.getItem(MAPPING_STORAGE_KEY);
+      const stored = localStorage.getItem(storageKey);
       if (stored) setSavedMapping(JSON.parse(stored) as Record<string, string | null>);
     } catch {
       // localStorage unavailable or invalid JSON — start with null
     }
-  }, []);
+  }, [rows, storageKey]);
 
   const editableMapping = useMemo(
-    () => buildEditableColumnMapping(availableSourceColumns, savedMapping ?? undefined),
-    [savedMapping]
+    () => buildEditableColumnMapping(availableColumns, savedMapping ?? undefined),
+    [availableColumns, savedMapping]
   );
 
   const mappedRows = useMemo(
-    () => applyMappingToRows(sampleCsvRows as Record<string, unknown>[], editableMapping.entries),
-    [editableMapping]
+    () => applyMappingToRows(rows, editableMapping.entries),
+    [editableMapping, rows]
   );
 
   const mappedDiagnostics = useMemo(() => buildRowDiagnostics(mappedRows), [mappedRows]);
 
+  const mappedResult = useMemo(() => csvExportAdapter.normalize(mappedRows), [mappedRows]);
+
   const mappedSummary = useMemo(() => {
-    const result = csvExportAdapter.normalize(mappedRows);
     return buildImportReadinessSummary(
       mappedDiagnostics,
-      result.dataset.metadata.recordCounts,
-      result.dataset.metadata.validation.status
+      mappedResult.dataset.metadata.recordCounts,
+      mappedResult.dataset.metadata.validation.status
     );
-  }, [mappedDiagnostics, mappedRows]);
+  }, [mappedDiagnostics, mappedResult]);
+
+  const loadAssessment = useMemo(
+    () => assessUploadedSessionLoad({
+      parseErrorCount,
+      mappingEntries: editableMapping.entries,
+      diagnostics: mappedDiagnostics,
+      dataset: mappedResult.dataset
+    }),
+    [editableMapping.entries, mappedDiagnostics, mappedResult.dataset, parseErrorCount]
+  );
 
   const hasCustomMapping = savedMapping !== null && Object.keys(savedMapping).length > 0;
 
   const handleEntryChange = (sourceField: string, newColumn: string | null) => {
     const updated = { ...(savedMapping ?? {}), [sourceField]: newColumn };
     setSavedMapping(updated);
-    try {
-      localStorage.setItem(MAPPING_STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      // ignore
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
     }
   };
 
@@ -588,23 +824,27 @@ function EditableMappingSection() {
     delete updated[sourceField];
     const next = Object.keys(updated).length > 0 ? updated : null;
     setSavedMapping(next);
-    try {
-      if (next) {
-        localStorage.setItem(MAPPING_STORAGE_KEY, JSON.stringify(next));
-      } else {
-        localStorage.removeItem(MAPPING_STORAGE_KEY);
+    if (storageKey) {
+      try {
+        if (next) {
+          localStorage.setItem(storageKey, JSON.stringify(next));
+        } else {
+          localStorage.removeItem(storageKey);
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
   };
 
   const handleResetAll = () => {
     setSavedMapping(null);
-    try {
-      localStorage.removeItem(MAPPING_STORAGE_KEY);
-    } catch {
-      // ignore
+    if (storageKey) {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {
+        // ignore
+      }
     }
   };
 
@@ -628,15 +868,12 @@ function EditableMappingSection() {
   };
 
   return (
-    <section className="rounded-xl border border-line bg-card p-5 shadow-soft md:p-6">
+    <section className={embedded ? "mt-5 border-t border-line pt-5" : "rounded-xl border border-line bg-card p-5 shadow-soft md:p-6"}>
       <div className="flex flex-col gap-4 border-b border-line pb-5 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Editable mapping preview</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">Column mapping editor</h2>
-          <p className="mt-3 text-sm leading-6 text-muted">
-            Remap source columns to normalized fields before import. Exact and inferred matches are auto-detected;
-            override any field using the dropdowns. Custom mapping persists in localStorage.
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">{eyebrow}</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">{title}</h2>
+          <p className="mt-3 text-sm leading-6 text-muted">{description}</p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-3">
           {hasCustomMapping ? (
@@ -725,7 +962,7 @@ function EditableMappingSection() {
                     onChange={(e) => handleEntryChange(entry.sourceField, e.target.value || null)}
                   >
                     <option value="">— unmapped —</option>
-                    {availableSourceColumns.map((col) => (
+                    {availableColumns.map((col) => (
                       <option key={col} value={col}>{col}</option>
                     ))}
                   </select>
@@ -754,8 +991,12 @@ function EditableMappingSection() {
 
           <p className="mt-3 text-xs leading-5 text-muted">
             {hasCustomMapping
-              ? "Custom mapping is active. Per-field Reset returns to auto-detected. Reset all clears localStorage."
-              : "Auto-detected mapping. Use dropdowns to override any field. Changes persist in localStorage."}
+              ? storageKey
+                ? "Custom mapping is active. Per-field Reset returns to auto-detected. Reset all clears localStorage."
+                : "Custom mapping is active for this uploaded file. Reset returns to auto-detected values."
+              : storageKey
+                ? "Auto-detected mapping. Use dropdowns to override any field. Changes persist in localStorage."
+                : "Auto-detected mapping. Overrides remain in memory for this uploaded file only."}
           </p>
         </article>
 
@@ -850,9 +1091,40 @@ function EditableMappingSection() {
         </article>
       )}
 
+      {onUseDataset ? (
+        <article className={`mt-5 rounded-lg border p-4 ${loadAssessment.canLoad ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}`}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className={`text-sm font-semibold ${loadAssessment.canLoad ? "text-emerald-900" : "text-rose-900"}`}>
+                {loadAssessment.canLoad ? "Uploaded data is ready for this session." : "Uploaded data cannot be loaded yet."}
+              </p>
+              {loadAssessment.reasons.length > 0 ? (
+                <ul className="mt-2 space-y-1 text-xs text-rose-800">
+                  {loadAssessment.reasons.map((reason) => <li key={reason}>{reason}</li>)}
+                </ul>
+              ) : (
+                <p className="mt-1 text-xs text-emerald-800">This replaces Demo JSON in memory until you return to demo data or refresh.</p>
+              )}
+            </div>
+            <button
+              type="button"
+              disabled={!loadAssessment.canLoad}
+              onClick={() => onUseDataset(mappedResult.dataset)}
+              className="shrink-0 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black focus:outline-none focus:ring-2 focus:ring-ink disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              Use uploaded data for this session
+            </button>
+          </div>
+        </article>
+      ) : null}
+
       <p className="mt-4 text-xs leading-5 text-muted">
-        Custom mapping persists in localStorage under <span className="font-mono">{MAPPING_STORAGE_KEY}</span>.
-        No upload UI, live CRM/ESP API, backend, database, auth, OAuth, or scheduled sync.
+        {storageKey ? (
+          <>Custom mapping persists in localStorage under <span className="font-mono">{storageKey}</span>. </>
+        ) : (
+          <>Uploaded rows and their mapping remain in memory for this session only. </>
+        )}
+        No live CRM/ESP API, backend, database, auth, OAuth, or scheduled sync.
       </p>
     </section>
   );

@@ -84,6 +84,8 @@ Sprint 20 adds a second implemented adapter for static flat CSV/export-shaped ro
 
 Sprint 22 adds an editable column-mapping preview to the Data screen. Users can remap unrecognized source fields to normalized Campaign Pulse fields before import. An alias map auto-infers common ESP/CRM export variants (`send_date → sendDate`, `recipients → sent`, `opens_unique → opens`, etc.) with `inferred` confidence. Per-field dropdowns let users override any mapping; confidence becomes `manual`. Mapping confidence is now `exact | inferred | manual | missing`. The accepted/rejected row counts and diagnostics table update live as mappings change. Duplicate source-column mappings and missing required fields produce inline warnings. Custom mapping persists in `localStorage` under `campaign_pulse_column_mapping_v1`. No upload UI, live CRM/ESP integration, backend, database, auth, or OAuth were added.
 
+Sprint 23 adds a client-side CSV upload scaffold to the Data screen. Browser `FileReader` reads `.csv` files locally, a dependency-free parser handles headers, quoted values, commas inside quotes, blank lines, trimming, and basic malformed-row errors, and the existing mapping/diagnostics flow runs against uploaded rows. Valid normalized data can replace Demo JSON for the current in-memory dashboard session; users can return to Demo JSON at any time. Uploaded files and normalized datasets are not persisted or sent to a backend.
+
 Sprint 21 adds an inspectable import-readiness console to the Data screen. The static CSV/export fixture is inspected through a column-mapping preview that shows detected source columns, normalized field destinations, mapping confidence (`exact | inferred | missing`), and a required-fields checklist. Per-row diagnostics report accepted and rejected rows with error type, affected field, raw value, and human-readable reason. An import-readiness summary shows total, accepted, and rejected row counts alongside normalized entity counts. All diagnostics are additive; the normalized dataset shape and active dashboard source are unchanged. There is still no upload UI, editable mappings, or live CRM/ESP integration.
 
 ## Data Model
@@ -141,7 +143,7 @@ Each newsletter stores source facts only: campaign/content/offer metadata, send 
 - Unsubscribe Rate = `unsubscribes / delivered`
 - Spam Rate = `spamComplaints / delivered`
 
-The dashboard does not use a backend, database, auth, upload flow, external API, or environment variables.
+The dashboard does not use a backend, database, auth, external API, or environment variables. Sprint 23's upload flow is browser-local and session-only.
 
 Sprint 08 moved derived analytics fully into TypeScript utilities. The JSON does not store precomputed rates, saturation scores, fatigue diagnoses, rankings, insights, or recommendations. The dashboard derives month/year facets from `timing.sentAt` and defaults to the latest available reporting month.
 
@@ -158,6 +160,15 @@ Sprint 17 also keeps that architecture unchanged. It adds no backend, database, 
 Sprint 19 changes the ingestion boundary, not the business meaning of the data. Metrics, saturation, fatigue, insights, recommendations, targets, and report values remain computed from normalized local facts. There is still no live CRM/API integration, backend, database, auth, upload UI, scheduled sync, webhook, OAuth, secret, or AI call.
 
 Sprint 20 proves export normalization readiness without changing the active dashboard source. CSV/export parsing trims whitespace, accepts common decimal/currency/percentage formatting, merges repeated references, and validates required fields, dates, numeric values, negative metrics, delivery sanity, and normalized references. No upload UI, live vendor API, backend, OAuth, or sync process was added.
+
+Sprint 23 lets a user-selected CSV reach that same adapter in memory:
+
+```text
+local .csv -> FileReader -> CSV parser -> editable mapping -> diagnostics
+  -> csvExportAdapter -> Uploaded CSV session
+```
+
+Session loading is blocked when parsing fails, required fields are not uniquely mapped, zero rows are accepted, adapter validation is `error`, or the normalized dataset has no campaigns, segments, or newsletters. Refreshing the page or choosing **Return to demo data** restores Demo JSON.
 
 ## Target Editor
 
@@ -236,7 +247,7 @@ data/import-sample.json
 
 Each row represents one newsletter x one segment. Validation checks required fields, metric sanity, impossible delivered/open/click values, and duplicate newsletter-segment rows. The normalizer groups flat rows into campaigns, segments, and newsletters with raw `segmentPerformance[]` facts.
 
-This is not a real upload/import feature. It is a public demo of the future architecture.
+This remains a static rehearsal fixture. Sprint 23 separately adds a real browser file picker, but the file never leaves the browser and is not persisted.
 
 Sprint 20 adds a separate adapter fixture:
 
@@ -247,6 +258,16 @@ data/sample-newsletter-export-rows.json
 ```
 
 The fixture is fake/demo-only and represents one newsletter x one segment per row. Mapping guidance lives in `docs/source-mapping-examples.md`.
+
+Recommended uploaded CSV headers:
+
+```text
+sendDate,newsletterId,newsletterName,campaignId,campaignName,
+segmentId,segmentName,sent,delivered,opens,clicks,orders,revenue,
+unsubscribes,spamComplaints,subject,creativeAngle
+```
+
+The first 15 fields are required; `subject` and `creativeAngle` are optional. Common aliases can be inferred or manually remapped on the Data screen.
 
 ## Tech Stack
 
@@ -343,10 +364,10 @@ Run `npm audit --omit=dev` manually before production use. Do not run `npm audit
 - Optionally run `npm run start` and confirm the production server responds.
 - Confirm no `.env` files or secrets are present.
 - Confirm `data/newsletter-performance.json` remains the raw demo source and reaches analytics through `demoJsonAdapter`.
-- Confirm the Data screen shows Demo JSON status, sample CSV adapter status/counts, column-mapping preview, required-fields checklist, accepted/rejected row summary, rejected-row diagnostics table, and future CRM/ESP placeholders.
+- Confirm the Data screen uploads a local `.csv`, previews parsed rows and columns, supports editable mapping, updates accepted/rejected diagnostics, blocks invalid session loads, switches the source indicator to Uploaded CSV session, and returns to Demo JSON.
 - Confirm synthetic audience members remain clearly demo-only.
 - Confirm data intake simulation is clearly labeled as static demo data.
-- Confirm no backend, database, auth, upload, external API, or AI/LLM calls were added.
+- Confirm uploaded files remain browser-local and session-only, with no backend, database, auth, external API, or AI/LLM calls.
 - Capture screenshots of:
   - Overview decision brief with question-led charts
   - Audience all-segments overview
@@ -376,8 +397,8 @@ The sample URLs in the mock data use `https://example.com/campaign-pulse-demo` a
 - Invalid-row import examples and schema documentation
 - Campaign drill-down timelines
 - Suppression and recovery-plan scenarios
-- Optional upload/API ingestion in a future non-static version
-- Optional upload UI and live CRM/ESP adapters after the static CSV/export contract is proven
+- Optional persisted ingestion in a future non-static version
+- Optional live CRM/ESP adapters after the local CSV contract is proven
 - Safe framework upgrade planning for future Next.js major versions
 
 ## Non-Goals
@@ -385,7 +406,7 @@ The sample URLs in the mock data use `https://example.com/campaign-pulse-demo` a
 - Backend services
 - Database persistence
 - Authentication
-- Real file upload/import
+- Persistent file storage/import jobs
 - External API sync
 - AI-generated recommendations
 - PDF export libraries

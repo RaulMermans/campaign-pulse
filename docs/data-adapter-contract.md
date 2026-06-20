@@ -91,7 +91,56 @@ Sprint 22 extends `lib/adapters/columnMapping.ts` with an interactive mapping mo
 
 ### localStorage persistence
 
-Custom mapping is stored in `localStorage` under `campaign_pulse_column_mapping_v1` as `Record<string, string | null>` keyed by canonical field name. Per-field Reset removes only that field's entry; Reset all clears the key entirely. No server-side persistence, no upload UI, no live API.
+Custom fixture mapping is stored in `localStorage` under `campaign_pulse_column_mapping_v1` as `Record<string, string | null>` keyed by canonical field name. Per-field Reset removes only that field's entry; Reset all clears the key entirely. Uploaded-file mapping remains session-only. There is no server-side persistence or live API.
+
+## Client-Side CSV Upload
+
+Sprint 23 adds a browser-local input path:
+
+```text
+selected .csv
+  -> FileReader.readAsText()
+  -> parseCsvText()
+  -> editable column mapping
+  -> row diagnostics
+  -> csvExportAdapter.normalize()
+  -> in-memory dashboard session
+```
+
+The parser supports:
+
+- one header row
+- quoted values and escaped double quotes
+- commas inside quoted values
+- blank lines
+- trimmed headers and values
+- basic errors for malformed row widths, unexpected quotes, unclosed quotes, blank headers, and duplicate headers
+
+Uploaded rows reuse the Sprint 22 mapping model and Sprint 21 diagnostics. Uploaded mapping is session-only; the existing static-fixture mapping can still persist under `campaign_pulse_column_mapping_v1`.
+
+Session activation is blocked when:
+
+- the parser reports errors
+- a required field is missing, duplicated, or mapped to an invalid source column
+- zero rows are accepted
+- normalized validation status is `error`
+- campaigns, segments, or newsletters are empty
+
+A valid dataset receives the source label `Uploaded CSV session`. It replaces Demo JSON only in React state. Refreshing or selecting **Return to demo data** restores the bundled adapter result. The selected file, parsed rows, mapping, and normalized uploaded dataset are not written to localStorage or any server.
+
+Recommended CSV fields:
+
+| Field | Requirement |
+| --- | --- |
+| `sendDate` | Required parseable date/time |
+| `newsletterId`, `newsletterName` | Required newsletter identity |
+| `campaignId`, `campaignName` | Required campaign identity |
+| `segmentId`, `segmentName` | Required segment identity |
+| `sent`, `delivered` | Required non-negative delivery counts |
+| `opens`, `clicks` | Required non-negative unique engagement counts |
+| `orders`, `revenue` | Required non-negative conversion facts |
+| `unsubscribes`, `spamComplaints` | Required non-negative safety counts |
+| `subject`, `creativeAngle` | Optional content labels |
 
 ## Column-Mapping Preview
 
@@ -118,7 +167,7 @@ The normalized dataset shape, `csvExportAdapter.validate`, and `csvExportAdapter
 
 ## Current Limits
 
-Sprint 21 adds no live CRM/API integration, file upload, upload UI, editable mappings, scheduled sync, webhooks, OAuth, backend services, databases, auth, secrets, AI calls, or new major screens. `csvExportAdapter` accepts in-memory flat rows from a fake local fixture; future upload or vendor adapters should produce the same normalized dataset before analytics run.
+Sprint 23 accepts local CSV files in the browser, but adds no persistent uploaded datasets, live CRM/API integration, scheduled sync, webhooks, OAuth, backend services, databases, auth, secrets, AI calls, or new major screens. Vendor adapters should continue producing the same normalized dataset before analytics run.
 
 ## CSV/export parsing
 

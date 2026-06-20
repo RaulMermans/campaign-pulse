@@ -475,6 +475,31 @@ Status:
 - All existing tests pass; 58 total tests now pass.
 - Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
 
+## Sprint 23 - Client-Side CSV Upload UI Scaffold
+
+Goal: Let users inspect and activate a local CSV export for the current dashboard session without adding server-side ingestion.
+
+Deliverables:
+
+- Dependency-free CSV text parser with header rows, quoted values, commas inside quotes, blank-line handling, trimming, and basic parse errors.
+- Data-screen `.csv` file input using browser `FileReader` only, with local-only note, file name, row count, parse status, and reset action.
+- Uploaded row and detected-column preview.
+- Existing editable mapping, required-field checklist, accepted/rejected summary, and rejected-row diagnostics reused for uploaded rows.
+- Guarded **Use uploaded data for this session** action that normalizes through `csvExportAdapter`.
+- Blocking reasons for parse errors, invalid required mappings, zero accepted rows, adapter validation errors, or empty campaigns/segments/newsletters.
+- Page-level in-memory dataset state with source indicators for `Demo JSON` and `Uploaded CSV session`.
+- **Return to demo data** action; bundled demo JSON remains unchanged.
+- Focused parser, mapping/normalization, row rejection, and session-load guard tests.
+- README and adapter-contract documentation updates.
+
+Status:
+
+- Implemented as a client-side, session-only scaffold.
+- Uploaded files are read locally with `FileReader`; files and normalized datasets are not persisted.
+- No backend, database, auth, API, OAuth, secret, scheduled sync, webhook, AI call, live CRM integration, new major screen, or major UX redesign was added.
+- Recommended CSV shape remains one newsletter x one segment per row.
+- Documentation continues to reference the vibe-coding workflow repo where relevant: https://github.com/filipecalegario/awesome-vibe-coding.git
+
 ## Sprint 21 - Static Column-Mapping Preview + Rejected-Row Diagnostics
 
 Goal: Make the Data screen show an inspectable import-readiness console: detected columns, mapped fields, accepted rows, rejected rows, and validation reasons.
