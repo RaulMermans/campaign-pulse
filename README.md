@@ -6,6 +6,15 @@ Campaign Pulse is a local-first marketing intelligence command center that turns
 
 > Campaign Pulse is a portfolio prototype, not a production SaaS product. It uses synthetic demo data and browser-local state only.
 
+
+![Overview: monthly takeaway, business health, targets and the "why" panel](docs/assets/overview.png)
+
+| Send calendar | Audience pressure | Prioritized insights |
+| --- | --- | --- |
+| ![Calendar](docs/assets/calendar.png) | ![Audience](docs/assets/audience.png) | ![Insights](docs/assets/insights.png) |
+
+<sub>Screenshots use the bundled synthetic demo data. **Evidence:** 73 tests passing (`npm test`), production build passing, and CI on every push.</sub>
+
 ## Screenshots
 
 Final screenshots are not committed yet. Capture these states before publishing the portfolio entry:
